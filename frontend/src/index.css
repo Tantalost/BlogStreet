@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Manrope:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg-canvas: #f4efe6;
+  --bg-card: rgba(255, 250, 241, 0.82);
+  --bg-card-strong: #fffdf7;
+  --line: #dbd1bf;
+  --text-strong: #232626;
+  --text-muted: #556064;
+  --brand: #0b7f72;
+  --brand-ink: #07594f;
+  --danger: #b64633;
+  --danger-bg: #ffe6e0;
+  --ok: #1d7255;
+  --ok-bg: #dff6ea;
+  --shadow-soft: 0 18px 40px rgba(33, 42, 48, 0.12);
+  --shadow-crisp: 0 6px 16px rgba(25, 30, 34, 0.1);
+  --radius-xl: 22px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --sans: 'Manrope', 'Segoe UI', sans-serif;
+  --serif: 'IBM Plex Serif', Georgia, serif;
+  --mono: 'Consolas', 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--text-strong);
+  background:
+    radial-gradient(circle at 8% -10%, #ffd7b8 0%, rgba(255, 215, 184, 0) 40%),
+    radial-gradient(circle at 100% 0%, #b6eee1 0%, rgba(182, 238, 225, 0) 35%),
+    linear-gradient(130deg, #f4efe6 0%, #efe7d7 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+p,
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
