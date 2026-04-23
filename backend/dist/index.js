@@ -7,7 +7,7 @@ import { config } from './config.js';
 import { supabaseAdmin } from './supabase.js';
 const createNoteSchema = z.object({
     title: z.string().trim().min(1, 'Title is required.').max(140),
-    content: z.string().max(20000).default(''),
+    content: z.string().max(2_000_000, 'Content is too large. Use smaller images.').default(''),
     isPublished: z.boolean().default(false),
 });
 const updateNoteSchema = createNoteSchema
@@ -26,11 +26,14 @@ const mapDbNote = (note) => ({
 });
 const app = express();
 app.use(cors({
-    origin: config.clientOrigin,
+    origin: config.clientOrigins,
     credentials: true,
 }));
-app.use(express.json({ limit: '1mb' }));
-app.use(clerkMiddleware());
+app.use(express.json({ limit: '6mb' }));
+app.use(clerkMiddleware({
+    publishableKey: config.clerkPublishableKey,
+    secretKey: config.clerkSecretKey,
+}));
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
 });
@@ -152,6 +155,22 @@ app.delete('/api/notes/:id', requireAuth(), async (req, res) => {
 });
 app.use((error, _req, res, _next) => {
     console.error(error);
+    if (typeof error === 'object' &&
+        error !== null &&
+        'type' in error &&
+        error.type === 'entity.too.large') {
+        res.status(413).json({
+            error: 'Uploaded image is too large. Please choose a smaller JPG/PNG file.',
+        });
+        return;
+    }
+    if (typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        typeof error.status === 'number') {
+        res.status(error.status).json({ error: 'Request failed.' });
+        return;
+    }
     res.status(500).json({ error: 'Internal server error.' });
 });
 app.listen(config.port, () => {

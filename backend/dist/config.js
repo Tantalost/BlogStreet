@@ -7,7 +7,11 @@ const requireEnv = (key) => {
 };
 export const config = {
     port: Number(process.env.PORT ?? 4000),
-    clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
+    clientOrigins: (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173,http://localhost:5174')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    clerkPublishableKey: requireEnv('CLERK_PUBLISHABLE_KEY'),
     clerkSecretKey: requireEnv('CLERK_SECRET_KEY'),
     supabaseUrl: requireEnv('SUPABASE_URL'),
     supabaseServiceRoleKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
