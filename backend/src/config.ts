@@ -14,8 +14,10 @@ export const config = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
-  clerkPublishableKey: requireEnv('CLERK_PUBLISHABLE_KEY'),
-  clerkSecretKey: requireEnv('CLERK_SECRET_KEY'),
   supabaseUrl: requireEnv('SUPABASE_URL'),
   supabaseServiceRoleKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+  jwtSecret: requireEnv('JWT_SECRET'),
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+  cookieName: process.env.AUTH_COOKIE_NAME ?? 'blogstreet_session',
+  isProduction: process.env.NODE_ENV === 'production',
 }

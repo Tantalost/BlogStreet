@@ -1,27 +1,24 @@
-import {
-  SignIn,
-  SignUp,
-  UserButton,
-  UserProfile,
-  useAuth,
-} from '@clerk/clerk-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, apiRequest } from './lib/api'
 import type { Note, NotePayload } from './types/note'
 import './App.css'
 
-const AUTH_APPEARANCE = {
-  elements: {
-    card: 'auth-card',
-    headerTitle: 'auth-title',
-    headerSubtitle: 'auth-subtitle',
-    socialButtonsBlockButton: 'auth-social',
-    formButtonPrimary: 'auth-primary-btn',
-    footerActionLink: 'auth-link',
-  },
+type AuthUser = {
+  id: string
+  username: string
 }
+
+type AuthContextValue = {
+  isLoaded: boolean
+  isSignedIn: boolean
+  user: AuthUser | null
+  refreshSession: () => Promise<void>
+  logout: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
 
 const EMPTY_DRAFT: NotePayload = {
   title: 'Untitled story',
@@ -49,42 +46,88 @@ type NotePreview = {
 const DASHBOARD_TAG_OPTIONS = ['Education', 'Lifestyle', 'Business', 'Personal', 'Travel']
 
 function App() {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [user, setUser] = useState<AuthUser | null>(null)
+
+  const refreshSession = async (): Promise<void> => {
+    try {
+      const payload = await apiRequest<{ user: AuthUser }>('/api/auth/me')
+      setUser(payload.user)
+    } catch {
+      setUser(null)
+    } finally {
+      setIsLoaded(true)
+    }
+  }
+
+  useEffect(() => {
+    void refreshSession()
+  }, [])
+
+  const logout = async (): Promise<void> => {
+    await apiRequest<void>('/api/auth/logout', { method: 'POST' })
+    setUser(null)
+  }
+
+  const authValue = useMemo<AuthContextValue>(
+    () => ({
+      isLoaded,
+      isSignedIn: Boolean(user),
+      user,
+      refreshSession,
+      logout,
+    }),
+    [isLoaded, user],
+  )
+
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/app" replace />} />
-      <Route path="/sign-in/*" element={<SignInPage />} />
-      <Route path="/sign-up/*" element={<SignUpPage />} />
-      <Route
-        path="/security/*"
-        element={
-          <RequireAuth>
-            <SecurityPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/app"
-        element={
-          <RequireAuth>
-            <DashboardPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/design"
-        element={
-          <RequireAuth>
-            <WorkspacePage />
-          </RequireAuth>
-        }
-      />
-      <Route path="*" element={<Navigate to="/app" replace />} />
-    </Routes>
+    <AuthContext.Provider value={authValue}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/sign-in" replace />} />
+        <Route path="/sign-in" element={<LoginPage />} />
+        <Route path="/sign-up" element={<RegisterPage />} />
+        <Route
+          path="/security"
+          element={
+            <RequireAuth>
+              <SecurityPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/app"
+          element={
+            <RequireAuth>
+              <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/design"
+          element={
+            <RequireAuth>
+              <WorkspacePage />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/sign-in" replace />} />
+      </Routes>
+    </AuthContext.Provider>
   )
 }
 
+function useSessionAuth(): AuthContextValue {
+  const context = useContext(AuthContext)
+
+  if (!context) {
+    throw new Error('AuthContext is missing.')
+  }
+
+  return context
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth()
+  const { isLoaded, isSignedIn } = useSessionAuth()
 
   if (!isLoaded) {
     return <div className="loading-screen">Loading your workspace...</div>
@@ -97,11 +140,43 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return children
 }
 
-function SignInPage() {
-  const { isSignedIn } = useAuth()
+function LoginPage() {
+  const { isSignedIn, refreshSession } = useSessionAuth()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   if (isSignedIn) {
     return <Navigate to="/app" replace />
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault()
+    const normalizedUsername = username.trim().toLowerCase()
+    const normalizedPassword = password.trim()
+
+    if (!normalizedUsername || !normalizedPassword) {
+      setErrorMessage('Username and password are required.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    try {
+      await apiRequest('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: normalizedUsername,
+          password: normalizedPassword,
+        }),
+      })
+      await refreshSession()
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -110,61 +185,238 @@ function SignInPage() {
         <p className="auth-kicker">BlogStreet</p>
         <h1>Build notes, then publish your stories.</h1>
         <p>
-          Use Google to sign in and jump straight into your writing workspace.
+          Sign in with your BlogStreet account to continue to your writing workspace.
         </p>
       </div>
-      <SignIn
-        path="/sign-in"
-        routing="path"
-        signUpUrl="/sign-up"
-        forceRedirectUrl="/app"
-        appearance={AUTH_APPEARANCE}
-      />
+      <form className="auth-card auth-local-form" onSubmit={(event) => void handleSubmit(event)}>
+        <h2 className="auth-title">Sign in</h2>
+        <p className="auth-subtitle">Use your username and password.</p>
+        <label className="note-field">
+          <span className="section-label">Username</span>
+          <input
+            className="title-input"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            maxLength={64}
+          />
+        </label>
+        <label className="note-field">
+          <span className="section-label">Password</span>
+          <input
+            className="title-input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            maxLength={256}
+          />
+        </label>
+        {errorMessage && <p className="message message-error">{errorMessage}</p>}
+        <button type="submit" className="primary-btn auth-primary-btn" disabled={isSubmitting}>
+          {isSubmitting ? 'Signing in...' : 'Sign in'}
+        </button>
+        <p className="auth-switch">
+          No account yet?{' '}
+          <Link to="/sign-up" className="auth-link">
+            Sign up
+          </Link>
+        </p>
+      </form>
     </div>
   )
 }
 
-function SignUpPage() {
-  const { isSignedIn } = useAuth()
+function RegisterPage() {
+  const { isSignedIn, refreshSession } = useSessionAuth()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   if (isSignedIn) {
     return <Navigate to="/app" replace />
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault()
+    const normalizedUsername = username.trim().toLowerCase()
+    const normalizedPassword = password.trim()
+
+    if (!normalizedUsername || !normalizedPassword) {
+      setErrorMessage('Username and password are required.')
+      return
+    }
+
+    if (normalizedPassword.length < 8) {
+      setErrorMessage('Password must be at least 8 characters.')
+      return
+    }
+
+    if (!/[A-Z]/.test(normalizedPassword)) {
+      setErrorMessage('Password must include at least one uppercase letter.')
+      return
+    }
+
+    if (!/[a-z]/.test(normalizedPassword)) {
+      setErrorMessage('Password must include at least one lowercase letter.')
+      return
+    }
+
+    if (!/[0-9]/.test(normalizedPassword)) {
+      setErrorMessage('Password must include at least one number.')
+      return
+    }
+
+    if (!/[^A-Za-z0-9]/.test(normalizedPassword)) {
+      setErrorMessage('Password must include at least one symbol.')
+      return
+    }
+
+    if (normalizedPassword !== confirmPassword.trim()) {
+      setErrorMessage('Passwords do not match.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    try {
+      await apiRequest('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: normalizedUsername,
+          password: normalizedPassword,
+        }),
+      })
+      await apiRequest('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: normalizedUsername,
+          password: normalizedPassword,
+        }),
+      })
+      await refreshSession()
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <div className="auth-shell">
       <div className="auth-intro">
         <p className="auth-kicker">BlogStreet</p>
-        <h1>Create your writing command center.</h1>
-        <p>
-          Continue with Google and start drafting beautifully formatted posts.
-        </p>
+        <h1>Create your account and start writing.</h1>
+        <p>Register with a username and password to access your workspace.</p>
       </div>
-      <SignUp
-        path="/sign-up"
-        routing="path"
-        signInUrl="/sign-in"
-        forceRedirectUrl="/app"
-        appearance={AUTH_APPEARANCE}
-      />
+      <form className="auth-card auth-local-form" onSubmit={(event) => void handleSubmit(event)}>
+        <h2 className="auth-title">Create account</h2>
+        <p className="auth-subtitle">Choose credentials for your new account.</p>
+        <label className="note-field">
+          <span className="section-label">Username</span>
+          <input
+            className="title-input"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            maxLength={64}
+          />
+        </label>
+        <label className="note-field">
+          <span className="section-label">Password</span>
+          <input
+            className="title-input"
+            type={isPasswordVisible ? 'text' : 'password'}
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            maxLength={256}
+          />
+        </label>
+        <label className="note-field">
+          <span className="section-label">Confirm password</span>
+          <input
+            className="title-input"
+            type={isPasswordVisible ? 'text' : 'password'}
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            maxLength={256}
+          />
+        </label>
+        <label className="switch-row auth-show-password">
+          <input
+            type="checkbox"
+            checked={isPasswordVisible}
+            onChange={(event) => setIsPasswordVisible(event.target.checked)}
+          />
+          Show password
+        </label>
+        <p className="subtle auth-password-hint">
+          Use at least 8 characters with uppercase, lowercase, number, and symbol.
+        </p>
+        {errorMessage && <p className="message message-error">{errorMessage}</p>}
+        <button type="submit" className="primary-btn auth-primary-btn" disabled={isSubmitting}>
+          {isSubmitting ? 'Creating account...' : 'Sign up'}
+        </button>
+        <p className="auth-switch">
+          Already have an account?{' '}
+          <Link to="/sign-in" className="auth-link">
+            Sign in
+          </Link>
+        </p>
+      </form>
     </div>
   )
 }
 
+function AccountButton() {
+  const { user, logout } = useSessionAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleLogout = async (): Promise<void> => {
+    setIsSubmitting(true)
+    try {
+      await logout()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="chip-btn"
+      onClick={() => void handleLogout()}
+      disabled={isSubmitting}
+      title={user?.username ? `Signed in as ${user.username}` : 'Sign out'}
+    >
+      {isSubmitting ? 'Signing out...' : 'Sign out'}
+    </button>
+  )
+}
+
 function SecurityPage() {
+  const { user } = useSessionAuth()
+
   return (
     <div className="profile-shell">
       <div className="profile-header">
         <Link to="/app">Back to dashboard</Link>
-        <UserButton />
+        <AccountButton />
       </div>
-      <UserProfile path="/security" routing="path" />
+      <div className="auth-intro">
+        <h2 className="auth-title">Account</h2>
+        <p className="auth-subtitle">Signed in as {user?.username ?? 'Unknown user'}</p>
+      </div>
     </div>
   )
 }
 
 function DashboardPage() {
-  const { getToken } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [notes, setNotes] = useState<Note[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -234,8 +486,7 @@ function DashboardPage() {
     setErrorMessage(null)
 
     try {
-      const token = await getSessionToken(getToken)
-      const fetchedNotes = await apiRequest<Note[]>('/api/notes', token)
+      const fetchedNotes = await apiRequest<Note[]>('/api/notes')
       setNotes(fetchedNotes)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -257,10 +508,7 @@ function DashboardPage() {
           />
         </label>
         <div className="dashboard-userbar">
-          <Link to="/security" className="chip-btn">
-            Security
-          </Link>
-          <UserButton />
+          <AccountButton />
         </div>
       </header>
 
@@ -350,7 +598,6 @@ function DashboardPage() {
 }
 
 function WorkspacePage() {
-  const { getToken } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [notes, setNotes] = useState<Note[]>([])
@@ -415,8 +662,7 @@ function WorkspacePage() {
     setSuccessMessage(null)
 
     try {
-      const token = await getSessionToken(getToken)
-      const fetchedNotes = await apiRequest<Note[]>('/api/notes', token)
+      const fetchedNotes = await apiRequest<Note[]>('/api/notes')
       const requestedNoteId = searchParams.get('note')
       setNotes(fetchedNotes)
       setSelectedNoteId((current) => {
@@ -446,8 +692,7 @@ function WorkspacePage() {
     setSuccessMessage(null)
 
     try {
-      const token = await getSessionToken(getToken)
-      const created = await apiRequest<Note>('/api/notes', token, {
+      const created = await apiRequest<Note>('/api/notes', {
         method: 'POST',
         body: JSON.stringify({
           title: 'Untitled note',
@@ -481,9 +726,8 @@ function WorkspacePage() {
     setSuccessMessage(null)
 
     try {
-      const token = await getSessionToken(getToken)
       const payload = payloadOverride ?? draft
-      const updated = await apiRequest<Note>(`/api/notes/${selectedNote.id}`, token, {
+      const updated = await apiRequest<Note>(`/api/notes/${selectedNote.id}`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       })
@@ -549,8 +793,7 @@ function WorkspacePage() {
     setSuccessMessage(null)
 
     try {
-      const token = await getSessionToken(getToken)
-      await apiRequest<void>(`/api/notes/${selectedNote.id}`, token, {
+      await apiRequest<void>(`/api/notes/${selectedNote.id}`, {
         method: 'DELETE',
       })
 
@@ -761,10 +1004,7 @@ function WorkspacePage() {
           >
             {isPublishingTransition ? 'Redirecting...' : isSaving ? 'Archiving...' : 'Archive'}
           </button>
-          <Link to="/security" className="secondary-btn">
-            Security
-          </Link>
-          <UserButton />
+          <AccountButton />
         </div>
       </header>
 
@@ -1047,18 +1287,6 @@ function WorkspacePage() {
       </div>
     </div>
   )
-}
-
-async function getSessionToken(
-  getToken: () => Promise<string | null>,
-): Promise<string> {
-  const token = await getToken()
-
-  if (!token) {
-    throw new Error('No Clerk session token found. Sign in again.')
-  }
-
-  return token
 }
 
 function getErrorMessage(error: unknown): string {

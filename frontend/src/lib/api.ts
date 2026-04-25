@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:4000' : '')
 
 export class ApiError extends Error {
   status: number
@@ -12,11 +12,9 @@ export class ApiError extends Error {
 
 export async function apiRequest<T>(
   path: string,
-  token: string,
   init: RequestInit = {},
 ): Promise<T> {
   const headers = new Headers(init.headers)
-  headers.set('Authorization', `Bearer ${token}`)
 
   if (!headers.has('Content-Type') && init.body) {
     headers.set('Content-Type', 'application/json')
@@ -25,6 +23,7 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers,
+    credentials: 'include',
   })
 
   if (!response.ok) {
