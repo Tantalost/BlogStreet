@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Manrope:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg-canvas: #f4efe6;
@@ -18,8 +18,8 @@
   --radius-xl: 22px;
   --radius-lg: 16px;
   --radius-md: 12px;
-  --sans: 'Manrope', 'Segoe UI', sans-serif;
-  --serif: 'IBM Plex Serif', Georgia, serif;
+  --sans: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --serif: 'Cormorant Garamond', Georgia, serif;
   --mono: 'Consolas', 'Courier New', monospace;
 }
 
@@ -45,6 +45,8 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
 }
 
 p,
@@ -52,6 +54,12 @@ h1,
 h2,
 h3 {
   margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.03em;
 }
 
 a {
