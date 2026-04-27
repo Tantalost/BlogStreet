@@ -45,7 +45,7 @@ function AppRoutes() {
       <Route path="/create-note" element={<RequireAuth><WorkspacePage /></RequireAuth>} />
       <Route path="/design" element={<RequireAuth><WorkspacePage /></RequireAuth>} />
       <Route path="/deleted-notes" element={<RequireAuth><DeletedNotesPage /></RequireAuth>} />
-      <Route path="*" element={<Navigate to="/sign-in" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

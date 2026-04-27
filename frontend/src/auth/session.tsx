@@ -58,6 +58,6 @@ export function useSessionAuth(): AuthContextValue {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useSessionAuth()
   if (!isLoaded) return <div className="loading-screen">Loading workspace…</div>
-  if (!isSignedIn) return <Navigate to="/sign-in" replace />
+  if (!isSignedIn) return <Navigate to="/" replace />
   return children
 }
