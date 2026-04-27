@@ -220,7 +220,7 @@ export default function WorkspacePage() {
       <div className={`page-enter mx-auto grid min-h-[calc(100vh-2.5rem)] w-full max-w-[1500px] overflow-hidden rounded-[30px] border border-white/80 bg-white/65 shadow-[0_24px_70px_rgba(15,23,42,0.14)] backdrop-blur-xl ${isPublishingTransition ? 'workspace-shell-leaving' : ''}`}>
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/70 bg-white/70 px-5 py-4 sm:px-7">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">WebNote Studio</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">BlogStreet Notes</h2>
             <p className="mt-0.5 text-sm text-slate-500">Draft, edit, and organize your notes</p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">

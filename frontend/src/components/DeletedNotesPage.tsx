@@ -118,9 +118,9 @@ export default function DeletedNotesPageComponent({ user, logout }: DeletedNotes
         <aside className="panel-enter enter-delay-1 border-b border-slate-200/70 bg-white/70 px-4 pb-4 pt-6 transition-[width] duration-200 lg:border-b-0 lg:border-r lg:pt-7">
           <div className={`flex items-center rounded-xl px-2 py-1 ${isSidebarCollapsed ? 'justify-center' : 'gap-2.5'}`}>
             <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-white p-[2px] shadow-sm">
-              <img src="/brand-logo.png" alt="WebNote logo" className="h-full w-full rounded-[6px] object-cover" />
+              <img src="/brand-logo.png" alt="BlogStreet logo" className="h-full w-full rounded-[6px] object-cover" />
             </div>
-            {!isSidebarCollapsed && <span className="text-xl font-semibold tracking-tight">WebNote</span>}
+            {!isSidebarCollapsed && <span className="text-xl font-semibold tracking-tight">BlogStreet</span>}
           </div>
 
           {!isSidebarCollapsed && <p className="mt-8 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">General</p>}

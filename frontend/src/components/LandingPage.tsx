@@ -13,9 +13,9 @@ export default function LandingPage() {
         <header className="landing-fade-up flex items-center justify-between gap-4 rounded-full border border-slate-200/80 bg-white/85 px-4 py-2 shadow-[0_14px_30px_rgba(15,23,42,0.08)] backdrop-blur md:px-6">
           <div className="flex items-center gap-2">
             <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-md border border-slate-200 bg-white p-[2px] shadow-sm">
-              <img src="/brand-logo.png" alt="WebNote logo" className="h-full w-full rounded-[5px] object-cover" />
+              <img src="/brand-logo.png" alt="BlogStreet logo" className="h-full w-full rounded-[5px] object-cover" />
             </div>
-            <span className="text-xl font-semibold tracking-tight">WebNote</span>
+            <span className="text-xl font-semibold tracking-tight">BlogStreet</span>
           </div>
 
           <div className="ml-auto flex items-center gap-3">

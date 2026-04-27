@@ -52,7 +52,7 @@ export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPag
             <Link to="/" className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-50">
               Back to home
             </Link>
-            <p className="mt-5 text-sm font-semibold tracking-wide text-blue-600">WebNote</p>
+            <p className="mt-5 text-sm font-semibold tracking-wide text-blue-600">BlogStreet</p>
             <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-tight text-slate-950 md:text-[2.8rem]">
               Create your account.
             </h1>
