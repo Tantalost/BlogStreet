@@ -21,6 +21,7 @@ type DbUser = {
   id: string
   username: string
   password_hash: string
+  avatar_url: string | null
 }
 
 type AuthenticatedRequest = express.Request & {
@@ -61,6 +62,32 @@ const userCreateSchema = z.object({
     .regex(/[0-9]/, 'Password must include at least one number.')
     .regex(/[^A-Za-z0-9]/, 'Password must include at least one symbol.'),
 })
+
+const profileUpdateSchema = z.object({
+  username: z.string().trim().min(3).max(64).optional(),
+  avatarUrl: z
+    .string()
+    .trim()
+    .max(2_000_000, 'Image is too large. Use a smaller image.')
+    .regex(/^data:image\/(png|jpeg|jpg|webp);base64,|^https?:\/\//i, 'Invalid image format.')
+    .optional(),
+  currentPassword: z.string().min(1, 'Current password is required.').max(1024).optional(),
+  newPassword: z
+    .string()
+    .min(8, 'New password must be at least 8 characters.')
+    .max(1024)
+    .regex(/[A-Z]/, 'New password must include at least one uppercase letter.')
+    .regex(/[a-z]/, 'New password must include at least one lowercase letter.')
+    .regex(/[0-9]/, 'New password must include at least one number.')
+    .regex(/[^A-Za-z0-9]/, 'New password must include at least one symbol.')
+    .optional(),
+}).refine((payload) => {
+  const hasAnyField = payload.username !== undefined || payload.avatarUrl !== undefined || payload.newPassword !== undefined
+  return hasAnyField
+}, { message: 'Provide at least one profile field to update.' }).refine((payload) => {
+  if (payload.newPassword !== undefined) return Boolean(payload.currentPassword)
+  return true
+}, { message: 'Current password is required to change password.' })
 
 const mapDbNote = (note: DbNote) => ({
   id: note.id,
@@ -156,7 +183,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from('users')
-    .select('id, username, password_hash')
+    .select('id, username, password_hash, avatar_url')
     .eq('username', username)
     .maybeSingle()
 
@@ -178,7 +205,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   issueSession(res, { id: user.id, username: user.username })
-  res.json({ user: { id: user.id, username: user.username } })
+  res.json({ user: { id: user.id, username: user.username, avatarUrl: user.avatar_url } })
 })
 
 app.post('/api/auth/logout', (_req, res) => {
@@ -186,13 +213,29 @@ app.post('/api/auth/logout', (_req, res) => {
   res.status(204).send()
 })
 
-app.get('/api/auth/me', requireUser, (req: AuthenticatedRequest, res) => {
+app.get('/api/auth/me', requireUser, async (req: AuthenticatedRequest, res) => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized.' })
     return
   }
 
-  res.json({ user: req.user })
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('id, username, avatar_url')
+    .eq('id', req.user.id)
+    .maybeSingle()
+
+  if (error) {
+    res.status(500).json({ error: 'Failed to load session.' })
+    return
+  }
+
+  if (!data) {
+    res.status(401).json({ error: 'Unauthorized.' })
+    return
+  }
+
+  res.json({ user: { id: data.id, username: data.username, avatarUrl: data.avatar_url } })
 })
 
 app.post('/api/auth/register', async (req, res) => {
@@ -207,7 +250,7 @@ app.post('/api/auth/register', async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('users')
     .insert({ username, password_hash: passwordHash })
-    .select('id, username')
+    .select('id, username, avatar_url')
     .single()
 
   if (error) {
@@ -219,6 +262,81 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   res.status(201).json(data)
+})
+
+app.patch('/api/auth/profile', requireUser, async (req: AuthenticatedRequest, res) => {
+  const userId = req.user?.id
+  const parsed = profileUpdateSchema.safeParse(req.body)
+
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized.' })
+    return
+  }
+
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
+    return
+  }
+
+  const { data: existingUser, error: existingUserError } = await supabaseAdmin
+    .from('users')
+    .select('id, username, password_hash, avatar_url')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (existingUserError) {
+    res.status(500).json({ error: 'Failed to load profile.' })
+    return
+  }
+
+  const dbUser = existingUser as DbUser | null
+  if (!dbUser) {
+    res.status(404).json({ error: 'User not found.' })
+    return
+  }
+
+  if (parsed.data.newPassword && parsed.data.currentPassword) {
+    const isCurrentPasswordValid = await comparePassword(parsed.data.currentPassword, dbUser.password_hash)
+    if (!isCurrentPasswordValid) {
+      res.status(401).json({ error: 'Current password is incorrect.' })
+      return
+    }
+  }
+
+  const nextUsername = parsed.data.username ? normalizeUsername(parsed.data.username) : undefined
+  const updatePayload: { username?: string; avatar_url?: string | null; password_hash?: string } = {}
+
+  if (nextUsername !== undefined) updatePayload.username = nextUsername
+  if (parsed.data.avatarUrl !== undefined) updatePayload.avatar_url = parsed.data.avatarUrl
+  if (parsed.data.newPassword !== undefined) {
+    updatePayload.password_hash = await hashPassword(parsed.data.newPassword)
+  }
+
+  const { data: updatedUser, error: updateError } = await supabaseAdmin
+    .from('users')
+    .update(updatePayload)
+    .eq('id', userId)
+    .select('id, username, avatar_url')
+    .maybeSingle()
+
+  if (updateError) {
+    const isConflict = typeof updateError.message === 'string' && updateError.message.toLowerCase().includes('duplicate')
+    res.status(isConflict ? 409 : 500).json({ error: isConflict ? 'Username already taken.' : 'Failed to update profile.' })
+    return
+  }
+
+  if (!updatedUser) {
+    res.status(404).json({ error: 'User not found.' })
+    return
+  }
+
+  const user = {
+    id: updatedUser.id,
+    username: updatedUser.username,
+    avatarUrl: updatedUser.avatar_url,
+  }
+  issueSession(res, { id: user.id, username: user.username })
+  res.json({ user })
 })
 
 app.get('/api/notes', requireUser, async (req: AuthenticatedRequest, res) => {

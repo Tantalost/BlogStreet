@@ -33,7 +33,7 @@ export async function apiRequest<T>(
       const body = (await response.json()) as { error?: string }
       message = body.error ?? message
     } catch {
-      // Keep fallback message when server does not return JSON.
+      /* DONT TOUCH THIS fallback message, minsan plain text lang balik ng server kaya eto sasalo */
     }
 
     throw new ApiError(message, response.status)
