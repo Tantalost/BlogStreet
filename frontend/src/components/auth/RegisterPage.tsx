@@ -49,7 +49,7 @@ export default function RegisterPage({ isSignedIn, refreshSession: _refreshSessi
         method: 'POST',
         body: JSON.stringify({ username: u, password: p }),
       }, { skipSessionCheck: true })
-      navigate('/verify-otp', { state: { username: u } })
+      navigate('/verify-otp', { state: { username: u, password: p } })
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally { setIsSubmitting(false) }
