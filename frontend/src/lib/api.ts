@@ -1,3 +1,5 @@
+import { INACTIVITY_LOGOUT_MESSAGE, ensureSessionActive, touchSession } from '../auth/sessionTimeout'
+
 const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:4000' : '')
 
 export class ApiError extends Error {
@@ -13,7 +15,16 @@ export class ApiError extends Error {
 export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
+  options: { skipSessionCheck?: boolean } = {},
 ): Promise<T> {
+  if (!options.skipSessionCheck) {
+    const isSessionActive = ensureSessionActive()
+    if (!isSessionActive) {
+      throw new ApiError(INACTIVITY_LOGOUT_MESSAGE, 401)
+    }
+    touchSession()
+  }
+
   const headers = new Headers(init.headers)
 
   if (!headers.has('Content-Type') && init.body) {

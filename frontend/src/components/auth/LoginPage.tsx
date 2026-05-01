@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useSessionAuth } from '../../auth/session'
 import { ApiError, apiRequest } from '../../lib/api'
 
 type LoginPageProps = {
@@ -12,6 +13,16 @@ export default function LoginPage({ isSignedIn, refreshSession }: LoginPageProps
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const location = useLocation()
+  const { clearLogoutMessage } = useSessionAuth()
+
+  useEffect(() => {
+    const message = (location.state as { message?: string } | null)?.message
+    if (message) {
+      setErrorMessage(message)
+      clearLogoutMessage()
+    }
+  }, [location.state, clearLogoutMessage])
 
   if (isSignedIn) return <Navigate to="/dashboard" replace />
 

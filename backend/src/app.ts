@@ -32,6 +32,15 @@ type AuthenticatedRequest = express.Request & {
 }
 
 const SALT_ROUNDS = 12
+const MAX_FAILED_ATTEMPTS = 5
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000
+
+type FailedLoginRecord = {
+  failedAttempts: number
+  lockedAt: number | null
+}
+
+const failedAttemptsByUsername = new Map<string, FailedLoginRecord>()
 
 const createNoteSchema = z.object({
   title: z.string().trim().min(1, 'Title is required.').max(140),
@@ -113,6 +122,53 @@ function normalizeUsername(username: string): string {
   return username.trim().toLowerCase()
 }
 
+function getFailedAttemptRecord(username: string): FailedLoginRecord {
+  const existing = failedAttemptsByUsername.get(username)
+  if (existing) return existing
+  const record: FailedLoginRecord = { failedAttempts: 0, lockedAt: null }
+  failedAttemptsByUsername.set(username, record)
+  return record
+}
+
+function resetFailedAttempts(record: FailedLoginRecord): void {
+  record.failedAttempts = 0
+  record.lockedAt = null
+}
+
+function getRemainingLockoutMs(record: FailedLoginRecord, now: number): number {
+  if (!record.lockedAt) return 0
+  const remaining = LOCKOUT_DURATION_MS - (now - record.lockedAt)
+  return remaining > 0 ? remaining : 0
+}
+
+function formatAttemptsRemainingMessage(remainingAttempts: number): string {
+  const suffix = remainingAttempts === 1 ? '' : 's'
+  return `Invalid credentials. ${remainingAttempts} attempt${suffix} remaining.`
+}
+
+function formatLockoutMessage(remainingMs: number): string {
+  const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000))
+  const minutes = Math.floor(remainingSeconds / 60)
+  const seconds = remainingSeconds % 60
+  if (minutes > 0) {
+    return `Account locked. Try again in ${minutes}m ${seconds}s.`
+  }
+  return `Account locked. Try again in ${seconds}s.`
+}
+
+function registerFailedAttempt(record: FailedLoginRecord, now: number): { locked: boolean; message: string } {
+  record.failedAttempts += 1
+
+  if (record.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+    record.failedAttempts = MAX_FAILED_ATTEMPTS
+    record.lockedAt = now
+    return { locked: true, message: formatLockoutMessage(LOCKOUT_DURATION_MS) }
+  }
+
+  const remainingAttempts = MAX_FAILED_ATTEMPTS - record.failedAttempts
+  return { locked: false, message: formatAttemptsRemainingMessage(remainingAttempts) }
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS)
 }
@@ -180,6 +236,18 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   const username = normalizeUsername(parsed.data.username)
+  const now = Date.now()
+  const lockRecord = getFailedAttemptRecord(username)
+  const remainingLockoutMs = getRemainingLockoutMs(lockRecord, now)
+
+  if (remainingLockoutMs > 0) {
+    res.status(423).json({ error: formatLockoutMessage(remainingLockoutMs) })
+    return
+  }
+
+  if (lockRecord.lockedAt) {
+    resetFailedAttempts(lockRecord)
+  }
 
   const { data, error } = await supabaseAdmin
     .from('users')
@@ -194,16 +262,19 @@ app.post('/api/auth/login', async (req, res) => {
 
   const user = data as DbUser | null
   if (!user) {
-    res.status(401).json({ error: 'Invalid credentials.' })
+    const { locked, message } = registerFailedAttempt(lockRecord, now)
+    res.status(locked ? 423 : 401).json({ error: message })
     return
   }
 
   const isValidPassword = await comparePassword(parsed.data.password, user.password_hash)
   if (!isValidPassword) {
-    res.status(401).json({ error: 'Invalid credentials.' })
+    const { locked, message } = registerFailedAttempt(lockRecord, now)
+    res.status(locked ? 423 : 401).json({ error: message })
     return
   }
 
+  resetFailedAttempts(lockRecord)
   issueSession(res, { id: user.id, username: user.username })
   res.json({ user: { id: user.id, username: user.username, avatarUrl: user.avatar_url } })
 })

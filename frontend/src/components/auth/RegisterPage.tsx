@@ -14,6 +14,18 @@ export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPag
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const passwordValue = password.trim()
+  const strength = check_password_strength(passwordValue)
+  const strengthPercent = Math.round((strength.score / 5) * 100)
+  const strengthLabelClass = getStrengthLabelClass(strength.label)
+  const strengthBarClass = getStrengthBarClass(strength.label)
+  const passwordRules = [
+    { label: 'Length >= 8 characters', passed: strength.rules.hasMinLength },
+    { label: 'At least one uppercase letter', passed: strength.rules.hasUppercase },
+    { label: 'At least one lowercase letter', passed: strength.rules.hasLowercase },
+    { label: 'At least one number', passed: strength.rules.hasDigit },
+    { label: 'At least one symbol', passed: strength.rules.hasSpecial },
+  ]
 
   if (isSignedIn) return <Navigate to="/dashboard" replace />
 
@@ -21,7 +33,9 @@ export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPag
     event.preventDefault()
     const u = username.trim().toLowerCase()
     const p = password.trim()
+    const submitStrength = check_password_strength(p)
     if (!u || !p) { setErrorMessage('Username and password are required.'); return }
+    if (submitStrength.label === 'Weak') { setErrorMessage('Password strength is too weak.'); return }
     if (p.length < 8) { setErrorMessage('Password must be at least 8 characters.'); return }
     if (!/[A-Z]/.test(p)) { setErrorMessage('Password must include at least one uppercase letter.'); return }
     if (!/[a-z]/.test(p)) { setErrorMessage('Password must include at least one lowercase letter.'); return }
@@ -82,15 +96,56 @@ export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPag
             </label>
             <label className="mt-5 block">
               <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Password</span>
-              <input
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                type={isPasswordVisible ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                maxLength={256}
-                placeholder="Create a strong password"
-              />
+              <div className="relative mt-2">
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-16 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                  type={isPasswordVisible ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  maxLength={256}
+                  placeholder="Create a strong password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer"
+                  onClick={() => setIsPasswordVisible((prev) => !prev)}
+                  aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+                >
+                  {isPasswordVisible ? (
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5 transition-transform duration-200"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  ) : (
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5 transition-transform duration-200"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 5l18 14" />
+                      <path d="M2 12s3.5-6 10-6c2.4 0 4.4.8 5.9 1.9" />
+                      <path d="M8.2 9.2a3 3 0 0 0 4.6 3.6" />
+                      <path d="M6.2 14.2C4.5 13.1 3 12 2 12" />
+                      <path d="M13.7 14.6c-.5.2-1.1.4-1.7.4-6.5 0-10-6-10-6" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </label>
             <label className="mt-5 block">
               <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Confirm password</span>
@@ -104,11 +159,23 @@ export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPag
                 placeholder="Re-enter your password"
               />
             </label>
-            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input type="checkbox" checked={isPasswordVisible} onChange={(e) => setIsPasswordVisible(e.target.checked)} />
-              Show password
-            </label>
             <p className="mt-2 text-xs text-slate-500">At least 8 chars with uppercase, lowercase, number, and symbol.</p>
+            <div className="mt-3 rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2">
+              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                <span>Strength</span>
+                <span className={strengthLabelClass}>{strength.label}</span>
+              </div>
+              <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
+                <div className={`h-full rounded-full transition-all ${strengthBarClass}`} style={{ width: `${strengthPercent}%` }} />
+              </div>
+              <div className="mt-2 grid gap-1 text-xs">
+                {passwordRules.map((rule) => (
+                  <div key={rule.label} className={rule.passed ? 'text-emerald-700' : 'text-slate-500'}>
+                    {rule.label}
+                  </div>
+                ))}
+              </div>
+            </div>
             {errorMessage && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>}
             <button
               type="submit"
@@ -131,4 +198,51 @@ function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message
   if (error instanceof Error) return error.message
   return 'Something went wrong. Please try again.'
+}
+
+type PasswordStrengthLabel = 'Weak' | 'Medium' | 'Strong'
+
+type PasswordStrengthResult = {
+  score: number
+  label: PasswordStrengthLabel
+  rules: {
+    hasMinLength: boolean
+    hasUppercase: boolean
+    hasLowercase: boolean
+    hasDigit: boolean
+    hasSpecial: boolean
+  }
+}
+
+function check_password_strength(password: string): PasswordStrengthResult {
+  const rules = {
+    hasMinLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasDigit: /[0-9]/.test(password),
+    hasSpecial: /[^A-Za-z0-9]/.test(password),
+  }
+
+  const score = Object.values(rules).filter(Boolean).length
+  let label: PasswordStrengthLabel = 'Weak'
+
+  if (score >= 5) {
+    label = 'Strong'
+  } else if (score >= 3) {
+    label = 'Medium'
+  }
+
+  return { score, label, rules }
+}
+
+function getStrengthLabelClass(label: PasswordStrengthLabel): string {
+  if (label === 'Strong') return 'text-emerald-600'
+  if (label === 'Medium') return 'text-amber-600'
+  return 'text-red-600'
+}
+
+function getStrengthBarClass(label: PasswordStrengthLabel): string {
+  if (label === 'Strong') return 'bg-emerald-500'
+  if (label === 'Medium') return 'bg-amber-500'
+  return 'bg-red-500'
 }
