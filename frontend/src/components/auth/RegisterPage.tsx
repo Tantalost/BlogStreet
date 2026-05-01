@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { ApiError, apiRequest } from '../../lib/api'
+import { ApiError } from '../../lib/api'
 
 type RegisterPageProps = {
   isSignedIn: boolean
