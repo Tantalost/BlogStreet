@@ -31,16 +31,14 @@ export default function LandingPage() {
           </div>
         </header>
 
-        <section className="landing-fade-up relative mt-3 flex min-h-[calc(100vh-145px)] items-center justify-center rounded-[34px] border border-white/80 bg-white/40 px-4 py-8 shadow-[0_30px_70px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:px-8 sm:py-10 lg:min-h-[calc(100vh-165px)] lg:px-16 lg:py-11 xl:min-h-[calc(100vh-145px)] xl:px-20 xl:py-12">
+        <section className="landing-fade-up relative mt-3 flex min-h-[calc(100vh-145px)] items-center justify-center rounded-[34px] border border-white/80 bg-white/40 px-4 py-8 shadow-[0_30px_70px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:px-8 sm:py-10 lg:min-h-[calc(100vh-165px)] lg:px-48 lg:py-11 xl:min-h-[calc(100vh-145px)] xl:px-64 xl:py-12">
           <div className="relative z-20 mx-auto max-w-2xl text-center" style={{ animationDelay: '120ms' }}>
-            <div className="mb-5 flex justify-center">
-            </div>
             <h1 className="landing-fade-up text-balance text-4xl font-semibold leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-[3.35rem] xl:text-6xl" style={{ animationDelay: '220ms' }}>
               Capture, organize, and reflect
               <span className="mt-1 block font-medium text-slate-400">all in one place</span>
             </h1>
             <p
-              className="landing-fade-up mx-auto mt-3.5 max-w-xl text-pretty text-center text-base text-slate-600 lg:mt-4 lg:text-[1.05rem] sm:text-lg"
+              className="landing-fade-up mx-auto mt-3.5 max-w-2xl text-pretty text-center text-base text-slate-600 lg:mt-4 lg:text-[1.05rem] sm:text-lg"
               style={{ animationDelay: '300ms' }}
             >
               Effortlessly manage your personalized notes and boost productivity.
@@ -54,18 +52,18 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div className="landing-float-medium pointer-events-none absolute left-4 top-8 hidden -rotate-3 xl:block xl:left-10 motion-reduce:animate-none">
-            <div className="relative">
-              <div className="w-40 rounded-sm border border-white/75 bg-yellow-200/68 p-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur-[3px] lg:w-44 lg:p-4">
-                <p className="font-['Comic_Neue',cursive] text-lg font-bold leading-tight text-slate-900">
-                  Take notes to keep track of details and move tasks faster.
-                </p>
-              </div>
-              <div className="absolute -bottom-7 -right-6 grid h-20 w-20 place-items-center rounded-2xl border border-white/85 bg-white/58 shadow-[0_16px_36px_rgba(15,23,42,0.14)] backdrop-blur-lg lg:-bottom-8 lg:-right-7 lg:h-24 lg:w-24">
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500 text-2xl text-white">✓</div>
-              </div>
-            </div>
-          </div>
+<div className="landing-float-medium pointer-events-none absolute left-4 top-8 hidden -rotate-3 xl:block xl:left-10 motion-reduce:animate-none">
+  <div className="relative">
+    <div className="w-40 rounded-sm border border-white/75 bg-yellow-200/68 p-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur-[3px] lg:w-44 lg:p-4">
+      <p className="font-['Comic_Neue',cursive] text-lg font-bold leading-tight text-slate-900">
+        Take notes to keep track of details and move tasks faster.
+      </p>
+    </div>
+    <div className="absolute -bottom-3 -right-3 flex items-center justify-center rounded-full bg-blue-500 shadow-md lg:-bottom-4 lg:-right-4 h-10 w-10 lg:h-12 lg:w-12">
+      <div className="text-xl text-white lg:text-2xl">✓</div>
+    </div>
+  </div>
+</div>
 
           <div className="landing-float-slow pointer-events-none absolute bottom-3 left-4 hidden w-56 -rotate-1 rounded-3xl border border-white/75 bg-white/50 p-4 shadow-[0_20px_42px_rgba(15,23,42,0.12)] backdrop-blur-2xl md:block lg:left-10 lg:w-64 xl:bottom-5 xl:w-72 motion-reduce:animate-none">
             <p className="text-lg font-semibold text-slate-800">Recent Notes</p>
@@ -91,12 +89,13 @@ export default function LandingPage() {
             </div>
           </div>
 
+          {/* Reminders Card with Just Clock Icon */}
           <div className="landing-float-medium pointer-events-none absolute right-4 top-8 hidden rotate-3 xl:block xl:right-10 motion-reduce:animate-none">
             <div className="relative w-44 rounded-3xl border border-white/75 bg-white/50 px-4 py-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-2xl lg:w-48 lg:px-5 lg:py-4">
               <p className="text-lg font-semibold text-slate-800">Reminders</p>
               <p className="mt-2 text-xs text-slate-500">Today&apos;s meeting with your writing buddy.</p>
               <div className="mt-3 rounded-xl border border-blue-100/80 bg-blue-50/70 px-3 py-2 text-sm text-blue-700">13:00 - 13:45</div>
-              <div className="absolute -left-8 top-6 grid h-14 w-14 place-items-center rounded-2xl border border-white/85 bg-white/58 text-2xl shadow-[0_16px_36px_rgba(15,23,42,0.13)] backdrop-blur-lg lg:-left-9 lg:h-16 lg:w-16 lg:text-3xl">
+              <div className="absolute -left-6 top-2 text-3xl lg:-left-8 lg:text-4xl drop-shadow-sm">
                 ⏰
               </div>
             </div>
