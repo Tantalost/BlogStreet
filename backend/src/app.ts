@@ -527,7 +527,52 @@ app.post('/api/auth/register', async (req, res) => {
     return
   }
 
-  res.status(200).json({ message: 'Username is available.' })
+  // If no email provided, just return availability check (from RegisterPage)
+  if (!parsed.data.email) {
+    res.status(200).json({ message: 'Username is available.' })
+    return
+  }
+
+  // If email provided, create pending registration and send OTP (from VerifyOtpPage)
+  const email = normalizeEmail(parsed.data.email)
+  // Check if email is already registered
+  const { data: emailData, error: emailError } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('email', email)
+    .limit(1)
+
+  if (emailError) {
+    res.status(500).json({ error: 'Failed to check existing emails.' })
+    return
+  }
+
+  if (emailData && emailData.length > 0) {
+    res.status(409).json({ error: 'This email is already in use.' })
+    return
+  }
+
+  const otp = generateOtpCode()
+  
+  try {
+    await sendOtpEmail(email, otp)
+  } catch {
+    res.status(500).json({ error: 'Failed to send verification code.' })
+    return
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, SALT_ROUNDS)
+  const pending: PendingRegistration = {
+    username,
+    email,
+    passwordHash,
+    otp,
+    expiresAt: Date.now() + OTP_EXPIRY_MS,
+    attempts: 0,
+  }
+
+  pendingRegistrationsByEmail.set(email, pending)
+  res.status(200).json({ message: `We sent a code to ${email}.` })
 })
 
 app.post('/api/auth/register/verify', async (req, res) => {
