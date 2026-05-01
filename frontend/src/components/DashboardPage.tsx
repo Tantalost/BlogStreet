@@ -35,6 +35,9 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isViewingLog, setIsViewingLog] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false)
+  const [activityLogEntries, setActivityLogEntries] = useState<string[]>([])
+  const [isLogoutConfirmModalOpen, setIsLogoutConfirmModalOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   const availableTags = useMemo(() => {
@@ -107,9 +110,10 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
 
   const handleLogout = async (): Promise<void> => {
     setIsLoggingOut(true)
+    setIsLogoutConfirmModalOpen(false)
+    setIsProfileMenuOpen(false)
     try {
       await logout()
-      setIsProfileMenuOpen(false)
     } finally {
       setIsLoggingOut(false)
     }
@@ -120,14 +124,18 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
     setIsProfileMenuOpen(false)
     try {
       const payload = await apiRequest<{ entries: string[] }>('/api/auth/activity')
-      const entries = payload.entries
-      const message = entries.length > 0 ? entries.join('\n') : 'No activity yet.'
-      window.alert(message)
+      setActivityLogEntries(payload.entries || [])
+      setIsActivityLogModalOpen(true)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsViewingLog(false)
     }
+  }
+
+  const handleLogoutClick = (): void => {
+    setIsLogoutConfirmModalOpen(true)
+    setIsProfileMenuOpen(false)
   }
 
   return (
@@ -198,6 +206,8 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
                 </svg>
               </span>
               <span>{new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(now)}</span>
+              <span className="text-slate-600">•</span>
+              <span>{new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).format(now)}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <label className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-500">
@@ -254,7 +264,7 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
                     <button
                       type="button"
                       className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                      onClick={() => void handleLogout()}
+                      onClick={handleLogoutClick}
                       disabled={isLoggingOut}
                     >
                       {isLoggingOut ? 'Logging out…' : 'Logout'}
@@ -265,7 +275,7 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
             </div>
           </header>
 
-          <h1 className="panel-enter enter-delay-3 mt-9 text-4xl font-medium tracking-tight text-slate-400 sm:mt-10 sm:text-5xl">
+          <h1 className="panel-enter enter-delay-3 mt-12 text-4xl font-medium tracking-tight text-slate-400 sm:mt-14 sm:text-5xl">
             {greeting()}, <span className="font-semibold text-slate-900">{user?.username ?? 'Writer'}</span>
           </h1>
           {errorMessage && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>}
@@ -350,6 +360,68 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
           </section>
         </main>
       </div>
+
+      {isActivityLogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.2)]" role="dialog" aria-modal="true" aria-labelledby="activity-log-title">
+            <div className="border-b border-slate-200 px-6 py-4">
+              <h2 id="activity-log-title" className="text-xl font-semibold text-slate-900">Activity Log</h2>
+              <p className="mt-1 text-sm text-slate-600">Your account activity and authentication history</p>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto px-6 py-4">
+              {activityLogEntries.length > 0 ? (
+                <div className="space-y-2">
+                  {activityLogEntries.map((entry, idx) => (
+                    <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-mono text-slate-700">
+                      {entry}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-sm text-slate-500">No activity recorded yet.</p>
+              )}
+            </div>
+            <div className="border-t border-slate-200 px-6 py-4">
+              <button
+                type="button"
+                className="w-full rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+                onClick={() => setIsActivityLogModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLogoutConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.2)]" role="dialog" aria-modal="true" aria-labelledby="logout-confirm-title">
+            <div className="px-6 py-6">
+              <h2 id="logout-confirm-title" className="text-lg font-semibold text-slate-900">Logout?</h2>
+              <p className="mt-2 text-sm text-slate-600">Are you sure you want to logout from your account?</p>
+            </div>
+            <div className="flex gap-3 border-t border-slate-200 px-6 py-4">
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setIsLogoutConfirmModalOpen(false)}
+                disabled={isLoggingOut}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => void handleLogout()}
+                disabled={isLoggingOut}
+              >
+                {isLoggingOut ? 'Logging out…' : 'Logout'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
