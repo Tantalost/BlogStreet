@@ -80,7 +80,7 @@ const loginSchema = z.object({
 
 const registerStartSchema = z.object({
   username: z.string().trim().min(3).max(64),
-  email: z.string().trim().email('Email is invalid.').max(255),
+  email: z.string().trim().email('Email is invalid.').max(255).optional(),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters.')

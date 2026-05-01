@@ -47,9 +47,9 @@ export default function RegisterPage({ isSignedIn, refreshSession: _refreshSessi
     try {
       await apiRequest('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ username: u, email: u, password: p }),
+        body: JSON.stringify({ username: u, password: p }),
       }, { skipSessionCheck: true })
-      navigate('/verify-otp', { state: { email: u } })
+      navigate('/verify-otp', { state: { username: u } })
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally { setIsSubmitting(false) }
