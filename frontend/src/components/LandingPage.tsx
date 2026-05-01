@@ -39,12 +39,15 @@ export default function LandingPage() {
               Capture, organize, and reflect
               <span className="mt-1 block font-medium text-slate-400">all in one place</span>
             </h1>
-            <p className="landing-fade-up mx-auto mt-3.5 max-w-xl text-pretty text-base text-slate-600 lg:mt-4 lg:text-[1.05rem] sm:text-lg" style={{ animationDelay: '300ms' }}>
+            <p
+              className="landing-fade-up mx-auto mt-3.5 max-w-xl text-pretty text-center text-base text-slate-600 lg:mt-4 lg:text-[1.05rem] sm:text-lg"
+              style={{ animationDelay: '300ms' }}
+            >
               Effortlessly manage your personalized notes and boost productivity.
             </p>
             <Link
               to="/sign-up"
-              className="landing-fade-up landing-button-glow mt-6 inline-flex rounded-2xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-[0_18px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-blue-500 lg:mt-7"
+              className="landing-fade-up landing-button-glow mt-6 inline-flex rounded-2xl bg-blue-600 px-7 py-3.5 text-base font-semibold !text-white shadow-[0_18px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-blue-500 lg:mt-7"
               style={{ animationDelay: '360ms' }}
             >
               Start taking notes

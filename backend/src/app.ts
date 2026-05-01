@@ -523,7 +523,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   if (data && data.length > 0) {
-    res.status(409).json({ error: 'Username or email already taken.' })
+    res.status(409).json({ error: 'Username is already taken.' })
     return
   }
 
@@ -582,7 +582,7 @@ app.post('/api/auth/register/verify', async (req, res) => {
     const isConflict = typeof error.message === 'string' && error.message.toLowerCase().includes('duplicate')
     res
       .status(isConflict ? 409 : 500)
-      .json({ error: isConflict ? 'Username or email already taken.' : 'Failed to create user.' })
+      .json({ error: isConflict ? 'Username is already taken.' : 'Failed to create user.' })
     return
   }
 
