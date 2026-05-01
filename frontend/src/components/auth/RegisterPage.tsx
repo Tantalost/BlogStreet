@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ApiError, apiRequest } from '../../lib/api'
 
 type RegisterPageProps = {
@@ -7,13 +7,14 @@ type RegisterPageProps = {
   refreshSession: () => Promise<void>
 }
 
-export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPageProps) {
+export default function RegisterPage({ isSignedIn, refreshSession: _refreshSession }: RegisterPageProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const navigate = useNavigate()
   const passwordValue = password.trim()
   const strength = check_password_strength(passwordValue)
   const strengthPercent = Math.round((strength.score / 5) * 100)
@@ -44,9 +45,7 @@ export default function RegisterPage({ isSignedIn, refreshSession }: RegisterPag
     if (p !== confirmPassword.trim()) { setErrorMessage('Passwords do not match.'); return }
     setIsSubmitting(true); setErrorMessage(null)
     try {
-      await apiRequest('/api/auth/register', { method: 'POST', body: JSON.stringify({ username: u, password: p }) })
-      await apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) })
-      await refreshSession()
+      navigate('/verify-otp', { state: { username: u, password: p } })
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally { setIsSubmitting(false) }

@@ -20,4 +20,10 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   cookieName: process.env.AUTH_COOKIE_NAME ?? 'blogstreet_session',
   isProduction: process.env.NODE_ENV === 'production',
+  brevoSmtpHost: requireEnv('BREVO_SMTP_HOST'),
+  brevoSmtpPort: Number(process.env.BREVO_SMTP_PORT ?? 587),
+  brevoSmtpUser: requireEnv('BREVO_SMTP_USER'),
+  brevoSmtpPass: requireEnv('BREVO_SMTP_PASS'),
+  brevoFromEmail: requireEnv('BREVO_FROM_EMAIL'),
+  brevoFromName: process.env.BREVO_FROM_NAME ?? 'BlogStreet',
 }

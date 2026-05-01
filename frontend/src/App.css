@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&display=swap');
 
-/* ─── Design tokens ─── */
+/* ─── Design ─── */
 :root {
   --cream: #f5f0e8;
   --cream-2: #ede7d9;
@@ -47,7 +47,6 @@ p, h1, h2, h3 { margin: 0; }
 a { color: inherit; }
 button, input, textarea, select { font: inherit; }
 
-/* ─── Loading screen ─── */
 .loading-screen {
   min-height: 100vh;
   display: grid;
@@ -136,14 +135,11 @@ button, input, textarea, select { font: inherit; }
 .auth-password-hint { margin: 0; color: var(--ink-3); font-size: .83rem; }
 .auth-show-password { font-size: .88rem; color: var(--ink-2); }
 
-/* ─── Dashboard Shell ─── */
 .dashboard-shell {
   width: min(1380px, calc(100vw - 2rem));
   margin: 1.5rem auto;
   animation: fadeUp 500ms ease forwards;
 }
-
-/* ─── Dashboard Topbar ─── */
 .dashboard-appbar {
   display: flex;
   align-items: center;
@@ -152,14 +148,12 @@ button, input, textarea, select { font: inherit; }
   border-bottom: 1px solid var(--line);
   margin-bottom: 1.5rem;
 }
-
 .dashboard-brand {
   display: flex;
   align-items: center;
   gap: 1.2rem;
   flex: 1;
 }
-
 .dashboard-brand-logo {
   width: 40px;
   height: 40px;
@@ -174,7 +168,6 @@ button, input, textarea, select { font: inherit; }
   font-style: italic;
   flex-shrink: 0;
 }
-
 .dashboard-brand-text h2 {
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -182,13 +175,11 @@ button, input, textarea, select { font: inherit; }
   color: var(--ink);
   line-height: 1.2;
 }
-
 .dashboard-brand-text p {
   font-size: .75rem;
   color: var(--ink-3);
   margin-top: .1rem;
 }
-
 .dashboard-search {
   display: flex;
   align-items: center;
@@ -202,18 +193,15 @@ button, input, textarea, select { font: inherit; }
   box-shadow: var(--shadow-sm);
   transition: border-color .2s, box-shadow .2s;
 }
-
 .dashboard-search:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(200,96,58,.12);
 }
-
 .dashboard-search-icon {
   color: var(--ink-3);
   font-size: .9rem;
   flex-shrink: 0;
 }
-
 .dashboard-search input {
   border: none;
   outline: none;
@@ -222,16 +210,12 @@ button, input, textarea, select { font: inherit; }
   color: var(--ink);
   font-size: .9rem;
 }
-
 .dashboard-search input::placeholder { color: var(--ink-3); }
-
 .dashboard-userbar {
   display: flex;
   align-items: center;
   gap: .6rem;
 }
-
-/* ─── Stats Row ─── */
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -250,12 +234,10 @@ button, input, textarea, select { font: inherit; }
   box-shadow: var(--shadow-sm);
   transition: box-shadow .2s, transform .2s;
 }
-
 .stat-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
-
 .stat-icon {
   width: 44px;
   height: 44px;
@@ -265,11 +247,9 @@ button, input, textarea, select { font: inherit; }
   font-size: 1.2rem;
   flex-shrink: 0;
 }
-
 .stat-icon.orange { background: var(--accent-light); }
 .stat-icon.green  { background: var(--accent-2-light); }
 .stat-icon.gold   { background: var(--gold-light); }
-
 .stat-label {
   font-size: .72rem;
   font-weight: 600;
@@ -278,7 +258,6 @@ button, input, textarea, select { font: inherit; }
   color: var(--ink-3);
   margin-bottom: .2rem;
 }
-
 .stat-value {
   font-family: var(--font-display);
   font-size: 1.8rem;
@@ -287,7 +266,6 @@ button, input, textarea, select { font: inherit; }
   line-height: 1;
 }
 
-/* ─── Board ─── */
 .dashboard-board {
   background: var(--white);
   border: 1px solid var(--line);
@@ -295,7 +273,6 @@ button, input, textarea, select { font: inherit; }
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
 }
-
 .dashboard-board-top {
   display: flex;
   justify-content: space-between;
@@ -304,7 +281,6 @@ button, input, textarea, select { font: inherit; }
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
-
 .dashboard-tabs {
   display: flex;
   align-items: center;
@@ -327,9 +303,7 @@ button, input, textarea, select { font: inherit; }
   transition: background .18s, color .18s, box-shadow .18s;
   white-space: nowrap;
 }
-
 .board-tab:hover { color: var(--ink); }
-
 .board-tab.active {
   background: var(--white);
   color: var(--ink);
@@ -356,22 +330,19 @@ button, input, textarea, select { font: inherit; }
   letter-spacing: .01em;
   transition: background .18s, transform .18s, box-shadow .18s;
 }
-
 .add-note-link:hover {
   background: var(--ink-2);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
-
 .add-note-link:active { transform: scale(.98); }
 
-/* ─── Dashboard Grid ─── */
+/* ─── Dashboard ─── */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
 }
-
 .dashboard-tile {
   background: var(--cream);
   border: 1px solid var(--line);
@@ -383,15 +354,12 @@ button, input, textarea, select { font: inherit; }
   transition: transform .2s, box-shadow .2s, border-color .2s;
   position: relative;
 }
-
 .dashboard-tile:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
   border-color: rgba(26,24,20,.2);
 }
-
 .dashboard-tile:active { transform: translateY(-1px) scale(.99); }
-
 .dashboard-tile-image {
   width: 100%;
   height: 150px;
@@ -400,7 +368,6 @@ button, input, textarea, select { font: inherit; }
   border-bottom: 1px solid var(--line-2);
   flex-shrink: 0;
 }
-
 .dashboard-tile-image img {
   width: 100%;
   height: 100%;
@@ -408,11 +375,9 @@ button, input, textarea, select { font: inherit; }
   display: block;
   transition: transform .4s ease;
 }
-
 .dashboard-tile:hover .dashboard-tile-image img {
   transform: scale(1.04);
 }
-
 .dashboard-note-placeholder {
   width: 100%;
   height: 100%;
@@ -423,7 +388,6 @@ button, input, textarea, select { font: inherit; }
   color: rgba(26,24,20,.15);
   user-select: none;
 }
-
 .dashboard-tile-body {
   padding: 1rem 1.1rem 1.1rem;
   display: flex;
@@ -493,14 +457,12 @@ button, input, textarea, select { font: inherit; }
   border-radius: 999px;
 }
 
-/* ─── Workspace Shell ─── */
 .workspace-shell {
   display: grid;
   grid-template-rows: auto auto 1fr;
   min-height: 100vh;
   background: var(--cream);
 }
-
 .workspace-shell-leaving {
   animation: publishExit 700ms cubic-bezier(.2,.75,.2,1) forwards;
 }
@@ -558,7 +520,6 @@ button, input, textarea, select { font: inherit; }
   color: #fff;
 }
 
-/* ─── Workspace Topbar ─── */
 .workspace-topbar {
   display: flex;
   align-items: center;
@@ -571,14 +532,12 @@ button, input, textarea, select { font: inherit; }
   z-index: 20;
   box-shadow: 0 1px 0 var(--line);
 }
-
 .workspace-brand {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex: 1;
 }
-
 .workspace-brand-logo {
   width: 36px;
   height: 36px;
@@ -593,27 +552,22 @@ button, input, textarea, select { font: inherit; }
   font-weight: 700;
   flex-shrink: 0;
 }
-
 .workspace-brand-info h2 {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 500;
   color: var(--ink);
 }
-
 .workspace-brand-info p {
   font-size: .73rem;
   color: var(--ink-3);
 }
-
 .workspace-top-actions {
   display: flex;
   align-items: center;
   gap: .6rem;
   flex-wrap: wrap;
 }
-
-/* ─── Workspace Grid ─── */
 .workspace-grid {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -632,26 +586,22 @@ button, input, textarea, select { font: inherit; }
   position: sticky;
   top: 65px;
 }
-
 .sidebar-header {
   padding: 1.25rem 1.25rem 1rem;
   border-bottom: 1px solid var(--line-2);
 }
-
 .sidebar-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: .65rem;
 }
-
 .sidebar-title {
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 500;
   color: var(--ink);
 }
-
 .sidebar-count {
   font-size: .72rem;
   font-weight: 600;
@@ -660,7 +610,6 @@ button, input, textarea, select { font: inherit; }
   border-radius: 999px;
   padding: .15rem .55rem;
 }
-
 .sidebar-new-btn {
   width: 100%;
   display: flex;
@@ -677,21 +626,17 @@ button, input, textarea, select { font: inherit; }
   cursor: pointer;
   transition: background .18s, box-shadow .18s, transform .18s;
 }
-
 .sidebar-new-btn:hover:not(:disabled) {
   background: var(--ink-2);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
-
 .sidebar-new-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-
 .sidebar-notes-section {
   padding: 1rem 1.25rem;
   overflow-y: auto;
   flex: 1;
 }
-
 .sidebar-section-label {
   font-size: .68rem;
   font-weight: 700;
@@ -701,7 +646,6 @@ button, input, textarea, select { font: inherit; }
   margin-bottom: .65rem;
   display: block;
 }
-
 .note-item {
   width: 100%;
   text-align: left;
@@ -716,17 +660,14 @@ button, input, textarea, select { font: inherit; }
   transition: background .15s, border-color .15s;
   margin-bottom: .3rem;
 }
-
 .note-item:hover {
   background: var(--cream);
   border-color: var(--line);
 }
-
 .note-item.active {
   background: var(--accent-light);
   border-color: rgba(200,96,58,.2);
 }
-
 .note-title {
   font-size: .85rem;
   font-weight: 600;
@@ -736,21 +677,17 @@ button, input, textarea, select { font: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .note-meta {
   font-size: .72rem;
   color: var(--ink-3);
 }
 
-/* ─── Preview Pane ─── */
 .preview-pane {
   padding: 1.75rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
-
-/* ─── Note Editor Card ─── */
 .preview-card {
   background: var(--white);
   border: 1px solid var(--line);
@@ -893,7 +830,6 @@ button, input, textarea, select { font: inherit; }
   display: block;
 }
 
-/* ─── Editor toolbar (archive row + actions) ─── */
 .editor-toolbar {
   display: flex;
   align-items: center;
@@ -922,8 +858,6 @@ button, input, textarea, select { font: inherit; }
 }
 
 .editor-actions { display: flex; gap: .55rem; align-items: center; }
-
-/* ─── Editor footer ─── */
 .editor-footer {
   display: flex;
   gap: 1.5rem;
@@ -935,7 +869,6 @@ button, input, textarea, select { font: inherit; }
   flex-wrap: wrap;
 }
 
-/* ─── Live preview ─── */
 .live-title {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 3vw, 2.2rem);
@@ -944,7 +877,6 @@ button, input, textarea, select { font: inherit; }
   padding: 1.5rem 1.5rem 0;
   line-height: 1.2;
 }
-
 .live-content {
   padding: 1rem 1.5rem 1.5rem;
 }
@@ -956,21 +888,18 @@ button, input, textarea, select { font: inherit; }
   color: var(--ink-2);
   margin: 0 0 1.25rem;
 }
-
 .content-image-section {
   margin: 0 0 1.25rem;
   border-radius: var(--r-md);
   overflow: hidden;
   border: 1px solid var(--line);
 }
-
 .content-image-section img {
   width: 100%;
   max-height: 460px;
   object-fit: cover;
   display: block;
 }
-
 .content-image-section figcaption {
   padding: .55rem .85rem;
   font-size: .82rem;
@@ -979,16 +908,13 @@ button, input, textarea, select { font: inherit; }
   background: var(--cream);
 }
 
-/* ─── Preview toolbar ─── */
 .preview-toolbar {
   display: flex;
   gap: .5rem;
   align-items: center;
 }
 
-/* ─── Mini nav ─── */
 .mini-nav { display: flex; gap: .35rem; flex-wrap: wrap; }
-
 .mini-nav button {
   border: 1px solid var(--line);
   background: var(--cream);
@@ -1008,7 +934,6 @@ button, input, textarea, select { font: inherit; }
   border-color: var(--ink);
 }
 
-/* ─── Empty state ─── */
 .empty-state {
   height: 100%;
   min-height: 400px;
@@ -1119,7 +1044,6 @@ button, input, textarea, select { font: inherit; }
   background: #9d3b2a !important;
 }
 
-/* ─── Messages ─── */
 .message {
   border-radius: var(--r-md);
   padding: .65rem .9rem;
@@ -1127,19 +1051,16 @@ button, input, textarea, select { font: inherit; }
   margin-bottom: .5rem;
   animation: fadeIn 250ms ease;
 }
-
 .message-error {
   background: #fdecea;
   color: #8b2525;
   border: 1px solid rgba(139,37,37,.15);
 }
-
 .message-success {
   background: var(--accent-2-light);
   color: var(--accent-2);
   border: 1px solid rgba(74,124,111,.2);
 }
-
 .publish-toast { animation: toastIn 260ms ease forwards; }
 
 /* ─── Modals ─── */
@@ -1153,7 +1074,6 @@ button, input, textarea, select { font: inherit; }
   z-index: 100;
   padding: 1rem;
 }
-
 .caption-modal {
   width: min(460px, 100%);
   background: var(--white);
@@ -1163,7 +1083,6 @@ button, input, textarea, select { font: inherit; }
   padding: 1.75rem;
   animation: fadeScaleIn 220ms ease forwards;
 }
-
 .caption-modal h3 {
   font-family: var(--font-display);
   font-size: 1.25rem;
@@ -1173,7 +1092,6 @@ button, input, textarea, select { font: inherit; }
 }
 
 .caption-modal p { color: var(--ink-3); font-size: .88rem; }
-
 .caption-input {
   width: 100%;
   box-sizing: border-box;
@@ -1187,12 +1105,10 @@ button, input, textarea, select { font: inherit; }
   color: var(--ink);
   transition: border-color .18s, box-shadow .18s;
 }
-
 .caption-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(200,96,58,.1);
 }
-
 .caption-actions {
   margin-top: 1.25rem;
   display: flex;
@@ -1200,7 +1116,6 @@ button, input, textarea, select { font: inherit; }
   gap: .6rem;
 }
 
-/* ─── Skeletons ─── */
 .skeleton-note-tile {
   background: var(--cream-2);
   border-radius: var(--r-lg);
@@ -1208,7 +1123,6 @@ button, input, textarea, select { font: inherit; }
   position: relative;
   overflow: hidden;
 }
-
 .skeleton-note-tile::after {
   content: '';
   position: absolute;
@@ -1217,7 +1131,6 @@ button, input, textarea, select { font: inherit; }
   background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.6) 50%, transparent 100%);
   animation: shimmer 1.2s ease-in-out infinite;
 }
-
 .skeleton-note-card {
   height: 58px;
   background: var(--cream-2);
@@ -1226,7 +1139,6 @@ button, input, textarea, select { font: inherit; }
   overflow: hidden;
   margin-bottom: .3rem;
 }
-
 .skeleton-note-card::after {
   content: '';
   position: absolute;
@@ -1236,20 +1148,17 @@ button, input, textarea, select { font: inherit; }
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
-/* ─── Profile / Security ─── */
 .profile-shell {
   width: min(1000px, calc(100vw - 2rem));
   margin: 2rem auto;
   padding: 1rem;
 }
-
 .profile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
 }
-
 .profile-header a {
   text-decoration: none;
   color: var(--accent);
@@ -1257,46 +1166,37 @@ button, input, textarea, select { font: inherit; }
   font-size: .88rem;
 }
 
-/* ─── Misc ─── */
 .subtle { color: var(--ink-3); font-size: .85rem; }
 
-/* ─── Animations ─── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-
 @keyframes fadeScaleIn {
   from { opacity: 0; transform: scale(.97); }
   to   { opacity: 1; transform: scale(1); }
 }
-
 @keyframes liftIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes publishExit {
   0%   { opacity: 1; transform: translateY(0) scale(1); }
   60%  { opacity: 1; transform: translateY(-12px) scale(1.01); }
   100% { opacity: 0; transform: translateY(-30px) scale(.98); }
 }
-
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes pageEnterSoft {
   from { opacity: 0; transform: translateY(10px) scale(.995); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 @keyframes shimmer {
   to { transform: translateX(100%); }
 }
@@ -1328,8 +1228,6 @@ button, input, textarea, select { font: inherit; }
     transition-duration: .01ms !important;
   }
 }
-
-/* ─── Responsive ─── */
 @media (max-width: 900px) {
   .auth-shell { grid-template-columns: 1fr; padding: 1rem; }
   .auth-intro { padding: 1rem; }
@@ -1339,7 +1237,6 @@ button, input, textarea, select { font: inherit; }
   .note-form-grid { grid-template-columns: 1fr; }
   .workspace-topbar { flex-wrap: wrap; }
 }
-
 @media (max-width: 640px) {
   .dashboard-appbar { flex-wrap: wrap; }
   .dashboard-brand { flex: 1 1 100%; }

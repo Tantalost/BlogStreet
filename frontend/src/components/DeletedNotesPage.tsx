@@ -22,6 +22,7 @@ export default function DeletedNotesPageComponent({ user, logout }: DeletedNotes
   const [activeNoteActionId, setActiveNoteActionId] = useState<string | null>(null)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isViewingLog, setIsViewingLog] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [now, setNow] = useState(() => new Date())
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
@@ -74,6 +75,21 @@ export default function DeletedNotesPageComponent({ user, logout }: DeletedNotes
       setIsProfileMenuOpen(false)
     } finally {
       setIsLoggingOut(false)
+    }
+  }
+
+  const handleViewActivityLog = async (): Promise<void> => {
+    setIsViewingLog(true)
+    setIsProfileMenuOpen(false)
+    try {
+      const payload = await apiRequest<{ entries: string[] }>('/api/auth/activity')
+      const entries = payload.entries
+      const message = entries.length > 0 ? entries.join('\n') : 'No activity yet.'
+      window.alert(message)
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+    } finally {
+      setIsViewingLog(false)
     }
   }
 
@@ -219,6 +235,14 @@ export default function DeletedNotesPageComponent({ user, logout }: DeletedNotes
                     <Link to="/profile" className="block px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => setIsProfileMenuOpen(false)}>
                       Profile
                     </Link>
+                    <button
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => void handleViewActivityLog()}
+                      disabled={isViewingLog}
+                    >
+                      {isViewingLog ? 'Loading activity…' : 'View activity log'}
+                    </button>
                     <button
                       type="button"
                       className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"

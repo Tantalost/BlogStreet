@@ -4,8 +4,6 @@ let cachedHandler: Handler | null = null
 
 async function getHandler(): Promise<Handler> {
   if (cachedHandler) return cachedHandler
-
-  // Vercel may load this file as CommonJS; dynamic import bridges to ESM backend module.
   const mod = await import('../backend/src/app.js')
   cachedHandler = (mod.default as Handler)
   return cachedHandler

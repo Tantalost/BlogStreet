@@ -3,6 +3,8 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 import jwt, { type JwtPayload, type SignOptions } from 'jsonwebtoken'
+import { randomInt } from 'node:crypto'
+import nodemailer from 'nodemailer'
 import { z } from 'zod'
 import { config } from './config.js'
 import { supabaseAdmin } from './supabase.js'
@@ -34,13 +36,29 @@ type AuthenticatedRequest = express.Request & {
 const SALT_ROUNDS = 12
 const MAX_FAILED_ATTEMPTS = 5
 const LOCKOUT_DURATION_MS = 5 * 60 * 1000
+const MAX_ACTIVITY_LOG_CACHE = 500
+const OTP_EXPIRY_MS = 10 * 60 * 1000
+const OTP_MAX_ATTEMPTS = 3
+
+type AuthEventType = 'SUCCESS' | 'FAILED' | 'LOCKED' | 'LOGOUT'
 
 type FailedLoginRecord = {
   failedAttempts: number
   lockedAt: number | null
 }
 
+type PendingRegistration = {
+  username: string
+  email: string
+  passwordHash: string
+  otp: string
+  expiresAt: number
+  attempts: number
+}
+
 const failedAttemptsByUsername = new Map<string, FailedLoginRecord>()
+const activityLogEntries: string[] = []
+const pendingRegistrationsByEmail = new Map<string, PendingRegistration>()
 
 const createNoteSchema = z.object({
   title: z.string().trim().min(1, 'Title is required.').max(140),
@@ -60,8 +78,9 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required.').max(1024),
 })
 
-const userCreateSchema = z.object({
+const registerStartSchema = z.object({
   username: z.string().trim().min(3).max(64),
+  email: z.string().trim().email('Email is invalid.').max(255),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters.')
@@ -70,6 +89,18 @@ const userCreateSchema = z.object({
     .regex(/[a-z]/, 'Password must include at least one lowercase letter.')
     .regex(/[0-9]/, 'Password must include at least one number.')
     .regex(/[^A-Za-z0-9]/, 'Password must include at least one symbol.'),
+})
+
+const registerVerifySchema = z.object({
+  email: z.string().trim().email('Email is invalid.').max(255),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'OTP code must be 6 digits.'),
+})
+
+const resendOtpSchema = z.object({
+  email: z.string().trim().email('Email is invalid.').max(255),
 })
 
 const profileUpdateSchema = z.object({
@@ -118,8 +149,59 @@ app.use(
 app.use(express.json({ limit: '6mb' }))
 app.use(cookieParser())
 
+const otpTransport = nodemailer.createTransport({
+  host: config.brevoSmtpHost,
+  port: config.brevoSmtpPort,
+  secure: config.brevoSmtpPort === 465,
+  auth: {
+    user: config.brevoSmtpUser,
+    pass: config.brevoSmtpPass,
+  },
+})
+
+const otpFromAddress = {
+  name: config.brevoFromName,
+  address: config.brevoFromEmail,
+}
+
 function normalizeUsername(username: string): string {
   return username.trim().toLowerCase()
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
+function generateOtpCode(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, '0')
+}
+
+async function sendOtpEmail(email: string, otpCode: string): Promise<void> {
+  const subject = 'Your BlogStreet verification code'
+  const text = `Your verification code is ${otpCode}. It expires in 10 minutes.`
+  const html = `
+    <p>Your verification code is <strong>${otpCode}</strong>.</p>
+    <p>This code expires in 10 minutes.</p>
+  `
+
+  await otpTransport.sendMail({
+    from: otpFromAddress,
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}
+
+function getPendingRegistrationByUsername(username: string): PendingRegistration | null {
+  for (const pending of pendingRegistrationsByEmail.values()) {
+    if (pending.username === username) return pending
+  }
+  return null
+}
+
+function isPendingExpired(pending: PendingRegistration, now: number): boolean {
+  return now > pending.expiresAt
 }
 
 function getFailedAttemptRecord(username: string): FailedLoginRecord {
@@ -156,18 +238,99 @@ function formatLockoutMessage(remainingMs: number): string {
   return `Account locked. Try again in ${seconds}s.`
 }
 
-function registerFailedAttempt(record: FailedLoginRecord, now: number): { locked: boolean; message: string } {
+function formatFailedAttemptDetail(attemptNumber: number): string {
+  return `Invalid credentials (attempt ${attemptNumber}/${MAX_FAILED_ATTEMPTS})`
+}
+
+function formatLockoutDetail(attemptNumber: number): string {
+  return `Account locked (attempt ${attemptNumber}/${MAX_FAILED_ATTEMPTS})`
+}
+
+function registerFailedAttempt(
+  record: FailedLoginRecord,
+  now: number,
+): { locked: boolean; message: string; failedAttempts: number } {
   record.failedAttempts += 1
 
   if (record.failedAttempts >= MAX_FAILED_ATTEMPTS) {
     record.failedAttempts = MAX_FAILED_ATTEMPTS
     record.lockedAt = now
-    return { locked: true, message: formatLockoutMessage(LOCKOUT_DURATION_MS) }
+    return { locked: true, message: formatLockoutMessage(LOCKOUT_DURATION_MS), failedAttempts: record.failedAttempts }
   }
 
   const remainingAttempts = MAX_FAILED_ATTEMPTS - record.failedAttempts
-  return { locked: false, message: formatAttemptsRemainingMessage(remainingAttempts) }
+  return { locked: false, message: formatAttemptsRemainingMessage(remainingAttempts), failedAttempts: record.failedAttempts }
 }
+
+function formatLogTimestamp(date: Date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  const hour = pad(date.getHours())
+  const minute = pad(date.getMinutes())
+  const second = pad(date.getSeconds())
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
+function formatLogEntry(timestamp: Date, username: string, eventType: AuthEventType, detail: string): string {
+  return `[${formatLogTimestamp(timestamp)}] user=${username} | event=${eventType} | detail=${detail}`
+}
+
+function appendLogEntry(entry: string): void {
+  activityLogEntries.push(entry)
+  if (activityLogEntries.length > MAX_ACTIVITY_LOG_CACHE) {
+    activityLogEntries.splice(0, activityLogEntries.length - MAX_ACTIVITY_LOG_CACHE)
+  }
+}
+
+function log_event(username: string, eventType: AuthEventType, detail: string): void {
+  const safeUsername = username || 'unknown'
+  const timestamp = new Date()
+  const entry = formatLogEntry(timestamp, safeUsername, eventType, detail)
+  appendLogEntry(entry)
+  void supabaseAdmin
+    .from('auth_activity_log')
+    .insert({
+      username: safeUsername,
+      event_type: eventType,
+      detail,
+      created_at: timestamp.toISOString(),
+    })
+    .then(({ error }) => {
+      if (error) console.error('Failed to persist activity log.', error)
+    })
+}
+
+async function loadActivityLogFromDb(): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from('auth_activity_log')
+    .select('username, event_type, detail, created_at')
+    .order('created_at', { ascending: true })
+    .limit(MAX_ACTIVITY_LOG_CACHE)
+
+  if (error) {
+    console.error('Failed to load activity log.', error)
+    return
+  }
+
+  data?.forEach((row) => {
+    const timestamp = row.created_at ? new Date(row.created_at) : new Date()
+    const entry = formatLogEntry(
+      timestamp,
+      row.username ?? 'unknown',
+      row.event_type as AuthEventType,
+      row.detail ?? '',
+    )
+    appendLogEntry(entry)
+  })
+}
+
+function getActivityLogTail(limit: number): string[] {
+  return activityLogEntries.slice(-limit)
+}
+
+void loadActivityLogFromDb()
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS)
@@ -231,6 +394,7 @@ app.post('/api/auth/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body)
 
   if (!parsed.success) {
+    log_event('unknown', 'FAILED', 'Invalid payload.')
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
     return
   }
@@ -241,6 +405,7 @@ app.post('/api/auth/login', async (req, res) => {
   const remainingLockoutMs = getRemainingLockoutMs(lockRecord, now)
 
   if (remainingLockoutMs > 0) {
+    log_event(username, 'LOCKED', formatLockoutMessage(remainingLockoutMs))
     res.status(423).json({ error: formatLockoutMessage(remainingLockoutMs) })
     return
   }
@@ -256,30 +421,51 @@ app.post('/api/auth/login', async (req, res) => {
     .maybeSingle()
 
   if (error) {
+    log_event(username, 'FAILED', 'User lookup failed.')
     res.status(500).json({ error: 'Request failed.' })
     return
   }
 
   const user = data as DbUser | null
   if (!user) {
-    const { locked, message } = registerFailedAttempt(lockRecord, now)
+    const { locked, message, failedAttempts } = registerFailedAttempt(lockRecord, now)
+    const detail = locked
+      ? formatLockoutDetail(failedAttempts)
+      : formatFailedAttemptDetail(failedAttempts)
+    log_event(username, locked ? 'LOCKED' : 'FAILED', detail)
     res.status(locked ? 423 : 401).json({ error: message })
     return
   }
 
   const isValidPassword = await comparePassword(parsed.data.password, user.password_hash)
   if (!isValidPassword) {
-    const { locked, message } = registerFailedAttempt(lockRecord, now)
+    const { locked, message, failedAttempts } = registerFailedAttempt(lockRecord, now)
+    const detail = locked
+      ? formatLockoutDetail(failedAttempts)
+      : formatFailedAttemptDetail(failedAttempts)
+    log_event(username, locked ? 'LOCKED' : 'FAILED', detail)
     res.status(locked ? 423 : 401).json({ error: message })
     return
   }
 
   resetFailedAttempts(lockRecord)
+  log_event(username, 'SUCCESS', 'Login successful.')
   issueSession(res, { id: user.id, username: user.username })
   res.json({ user: { id: user.id, username: user.username, avatarUrl: user.avatar_url } })
 })
 
-app.post('/api/auth/logout', (_req, res) => {
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.cookies?.[config.cookieName]
+  let username = 'unknown'
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload
+      if (typeof decoded.username === 'string') username = decoded.username
+    } catch {
+      // Ignore invalid tokens when logging out.
+    }
+  }
+  log_event(username, 'LOGOUT', 'User logged out.')
   clearSession(res)
   res.status(204).send()
 })
@@ -309,18 +495,128 @@ app.get('/api/auth/me', requireUser, async (req: AuthenticatedRequest, res) => {
   res.json({ user: { id: data.id, username: data.username, avatarUrl: data.avatar_url } })
 })
 
+app.get('/api/auth/activity', requireUser, async (_req, res) => {
+  if (activityLogEntries.length === 0) {
+    await loadActivityLogFromDb()
+  }
+  res.json({ entries: getActivityLogTail(20) })
+})
+
 app.post('/api/auth/register', async (req, res) => {
-  const parsed = userCreateSchema.safeParse(req.body)
+  const parsed = registerStartSchema.safeParse(req.body)
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
     return
   }
 
   const username = normalizeUsername(parsed.data.username)
-  const passwordHash = await hashPassword(parsed.data.password)
+  const email = normalizeEmail(parsed.data.email)
+  const now = Date.now()
+
+  const pendingByEmail = pendingRegistrationsByEmail.get(email)
+  const pendingByUsername = getPendingRegistrationByUsername(username)
+
+  if (pendingByEmail && !isPendingExpired(pendingByEmail, now)) {
+    res.status(409).json({ error: 'Verification already sent. Please check your email or request a new code.' })
+    return
+  }
+
+  if (pendingByUsername && pendingByUsername.email !== email && !isPendingExpired(pendingByUsername, now)) {
+    res.status(409).json({ error: 'Username is already pending verification.' })
+    return
+  }
+
+  if (pendingByEmail && isPendingExpired(pendingByEmail, now)) {
+    pendingRegistrationsByEmail.delete(email)
+  }
+
+  if (pendingByUsername && isPendingExpired(pendingByUsername, now)) {
+    pendingRegistrationsByEmail.delete(pendingByUsername.email)
+  }
+
   const { data, error } = await supabaseAdmin
     .from('users')
-    .insert({ username, password_hash: passwordHash })
+    .select('id')
+    .or(`username.eq.${username},email.eq.${email}`)
+    .limit(1)
+
+  if (error) {
+    res.status(500).json({ error: 'Failed to check existing users.' })
+    return
+  }
+
+  if (data && data.length > 0) {
+    res.status(409).json({ error: 'Username or email already taken.' })
+    return
+  }
+
+  const otp = generateOtpCode()
+
+  try {
+    await sendOtpEmail(email, otp)
+  } catch {
+    res.status(500).json({ error: 'Failed to send verification code.' })
+    return
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password)
+  pendingRegistrationsByEmail.set(email, {
+    username,
+    email,
+    passwordHash,
+    otp,
+    expiresAt: now + OTP_EXPIRY_MS,
+    attempts: 0,
+  })
+
+  res.status(202).json({ message: 'Verification code sent. Please check your email.' })
+})
+
+app.post('/api/auth/register/verify', async (req, res) => {
+  const parsed = registerVerifySchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
+    return
+  }
+
+  const email = normalizeEmail(parsed.data.email)
+  const otp = parsed.data.otp.trim()
+  const pending = pendingRegistrationsByEmail.get(email)
+
+  if (!pending) {
+    res.status(400).json({ error: 'No pending registration found. Please request a new code.' })
+    return
+  }
+
+  const now = Date.now()
+  if (isPendingExpired(pending, now)) {
+    pendingRegistrationsByEmail.delete(email)
+    res.status(410).json({ error: 'Verification code expired. Please request a new one.' })
+    return
+  }
+
+  if (pending.otp !== otp) {
+    pending.attempts += 1
+    if (pending.attempts >= OTP_MAX_ATTEMPTS) {
+      pendingRegistrationsByEmail.delete(email)
+      res.status(400).json({ error: 'Verification code invalid. Please request a new one.' })
+      return
+    }
+    res.status(401).json({
+      error: `Invalid code. ${OTP_MAX_ATTEMPTS - pending.attempts} attempt(s) remaining.`,
+    })
+    return
+  }
+
+  const verifiedAt = new Date().toISOString()
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .insert({
+      username: pending.username,
+      email: pending.email,
+      password_hash: pending.passwordHash,
+      email_verified_at: verifiedAt,
+    })
     .select('id, username, avatar_url')
     .single()
 
@@ -328,11 +624,42 @@ app.post('/api/auth/register', async (req, res) => {
     const isConflict = typeof error.message === 'string' && error.message.toLowerCase().includes('duplicate')
     res
       .status(isConflict ? 409 : 500)
-      .json({ error: isConflict ? 'Username already taken.' : 'Failed to create user.' })
+      .json({ error: isConflict ? 'Username or email already taken.' : 'Failed to create user.' })
     return
   }
 
-  res.status(201).json(data)
+  pendingRegistrationsByEmail.delete(email)
+  res.status(201).json({ user: data })
+})
+
+app.post('/api/auth/register/resend', async (req, res) => {
+  const parsed = resendOtpSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
+    return
+  }
+
+  const email = normalizeEmail(parsed.data.email)
+  const pending = pendingRegistrationsByEmail.get(email)
+
+  if (!pending) {
+    res.status(400).json({ error: 'No pending registration found. Please sign up again.' })
+    return
+  }
+
+  const otp = generateOtpCode()
+  try {
+    await sendOtpEmail(email, otp)
+  } catch {
+    res.status(500).json({ error: 'Failed to send verification code.' })
+    return
+  }
+
+  pending.otp = otp
+  pending.expiresAt = Date.now() + OTP_EXPIRY_MS
+  pending.attempts = 0
+
+  res.json({ message: 'A new verification code has been sent.' })
 })
 
 app.patch('/api/auth/profile', requireUser, async (req: AuthenticatedRequest, res) => {
