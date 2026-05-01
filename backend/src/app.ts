@@ -510,34 +510,11 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   const username = normalizeUsername(parsed.data.username)
-  const email = normalizeEmail(parsed.data.email)
-  const now = Date.now()
-
-  const pendingByEmail = pendingRegistrationsByEmail.get(email)
-  const pendingByUsername = getPendingRegistrationByUsername(username)
-
-  if (pendingByEmail && !isPendingExpired(pendingByEmail, now)) {
-    res.status(409).json({ error: 'Verification already sent. Please check your email or request a new code.' })
-    return
-  }
-
-  if (pendingByUsername && pendingByUsername.email !== email && !isPendingExpired(pendingByUsername, now)) {
-    res.status(409).json({ error: 'Username is already pending verification.' })
-    return
-  }
-
-  if (pendingByEmail && isPendingExpired(pendingByEmail, now)) {
-    pendingRegistrationsByEmail.delete(email)
-  }
-
-  if (pendingByUsername && isPendingExpired(pendingByUsername, now)) {
-    pendingRegistrationsByEmail.delete(pendingByUsername.email)
-  }
 
   const { data, error } = await supabaseAdmin
     .from('users')
     .select('id')
-    .or(`username.eq.${username},email.eq.${email}`)
+    .eq('username', username)
     .limit(1)
 
   if (error) {
@@ -550,26 +527,7 @@ app.post('/api/auth/register', async (req, res) => {
     return
   }
 
-  const otp = generateOtpCode()
-
-  try {
-    await sendOtpEmail(email, otp)
-  } catch {
-    res.status(500).json({ error: 'Failed to send verification code.' })
-    return
-  }
-
-  const passwordHash = await hashPassword(parsed.data.password)
-  pendingRegistrationsByEmail.set(email, {
-    username,
-    email,
-    passwordHash,
-    otp,
-    expiresAt: now + OTP_EXPIRY_MS,
-    attempts: 0,
-  })
-
-  res.status(202).json({ message: 'Verification code sent. Please check your email.' })
+  res.status(200).json({ message: 'Username is available.' })
 })
 
 app.post('/api/auth/register/verify', async (req, res) => {
