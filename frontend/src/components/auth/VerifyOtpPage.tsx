@@ -28,28 +28,17 @@ export default function VerifyOtpPage({ isSignedIn }: VerifyOtpPageProps) {
   const [hasSentCode, setHasSentCode] = useState(false)
 
   if (isSignedIn) return <Navigate to="/dashboard" replace />
-
-  if (!state?.username || !state?.password) {
-    return <Navigate to="/sign-up" replace />
-  }
+  if (!state?.username || !state?.password) return <Navigate to="/sign-up" replace />
 
   const handleSendCode = async (): Promise<void> => {
     const e = email.trim().toLowerCase()
-    if (!e) {
-      setErrorMessage('Enter your email address to receive a code.')
-      return
-    }
-
+    if (!e) { setErrorMessage('Enter your email address to receive a code.'); return }
     setIsSendingCode(true)
     setErrorMessage(null)
     try {
       const payload = await apiRequest<{ message?: string }>('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({
-          username: state.username,
-          email: e,
-          password: state.password,
-        }),
+        body: JSON.stringify({ username: state.username, email: e, password: state.password }),
       })
       setStatusMessage(payload.message ?? `We sent a code to ${e}.`)
       setHasSentCode(true)
@@ -64,29 +53,13 @@ export default function VerifyOtpPage({ isSignedIn }: VerifyOtpPageProps) {
     event.preventDefault()
     const e = email.trim().toLowerCase()
     const code = otp.trim()
-
-    if (!e || !code) {
-      setErrorMessage('Email and OTP code are required.')
-      return
-    }
-
-    if (!/^\d{6}$/.test(code)) {
-      setErrorMessage('OTP code must be 6 digits.')
-      return
-    }
-
+    if (!e || !code) { setErrorMessage('Email and OTP code are required.'); return }
+    if (!/^\d{6}$/.test(code)) { setErrorMessage('OTP code must be exactly 6 digits.'); return }
     setIsSubmitting(true)
     setErrorMessage(null)
     try {
-      await apiRequest('/api/auth/register/verify', {
-        method: 'POST',
-        body: JSON.stringify({ email: e, otp: code }),
-      })
-
-      await apiRequest('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username: state.username, password: state.password }),
-      })
+      await apiRequest('/api/auth/register/verify', { method: 'POST', body: JSON.stringify({ email: e, otp: code }) })
+      await apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: state.username, password: state.password }) })
       await refreshSession()
       navigate('/dashboard', { replace: true })
     } catch (error) {
@@ -98,18 +71,11 @@ export default function VerifyOtpPage({ isSignedIn }: VerifyOtpPageProps) {
 
   const handleResend = async (): Promise<void> => {
     const e = email.trim().toLowerCase()
-    if (!e) {
-      setErrorMessage('Enter your email to resend the code.')
-      return
-    }
-
+    if (!e) { setErrorMessage('Enter your email to resend the code.'); return }
     setIsResending(true)
     setErrorMessage(null)
     try {
-      const payload = await apiRequest<{ message?: string }>('/api/auth/register/resend', {
-        method: 'POST',
-        body: JSON.stringify({ email: e }),
-      })
+      const payload = await apiRequest<{ message?: string }>('/api/auth/register/resend', { method: 'POST', body: JSON.stringify({ email: e }) })
       setStatusMessage(payload.message ?? 'A new verification code has been sent.')
       setHasSentCode(true)
     } catch (error) {
@@ -120,91 +86,143 @@ export default function VerifyOtpPage({ isSignedIn }: VerifyOtpPageProps) {
   }
 
   return (
-    <div
-      className="relative min-h-screen overflow-hidden bg-[#f8f9fb] font-['Inter',system-ui,sans-serif]"
-      style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.07) 1px, transparent 0)',
-        backgroundSize: '14px 14px',
-      }}
-    >
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-4xl items-center px-4 py-8 sm:px-6">
-        <div className="landing-fade-up w-full overflow-hidden rounded-[30px] border border-white/70 bg-white/55 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl sm:p-10">
-          <Link to="/" className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-50">
+    <>
+
+      <div className="vop-root">
+        <div className="vop-card">
+
+          <Link to="/" className="back-link">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M8.5 10.5L4.5 6.5L8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
             Back to home
           </Link>
-          <h1 className="mt-6 text-balance text-3xl font-semibold tracking-tight text-slate-900">Verify your email</h1>
-          <p className="mt-2 text-sm text-slate-600">Enter the 6-digit code sent to your email.</p>
 
-          <form className="mt-6" onSubmit={(e) => void handleVerify(e)}>
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Email</span>
-              <input
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                maxLength={255}
-                placeholder="you@example.com"
-              />
-            </label>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.32)] transition hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-55"
-                onClick={() => void handleSendCode()}
-                disabled={isSendingCode}
-              >
-                {isSendingCode ? 'Sending…' : 'Send code'}
-              </button>
-              <p className="text-xs text-slate-500">Use the email you want to verify.</p>
+          <div className="progress-bar">
+            <div className="progress-seg done" />
+            <div className="progress-seg active" />
+          </div>
+
+          <div className="step-chip">
+            <div className="step-num">3</div>
+            <span className="step-label">Email Verification</span>
+          </div>
+
+          <h1 className="vop-title">Verify your email</h1>
+          <p className="vop-subtitle">Enter the 6-digit code we'll send to confirm your account.</p>
+
+          <div className="divider" />
+
+          <form onSubmit={(e) => void handleVerify(e)}>
+
+            <div className="field">
+              <label className="field-label">Email address</label>
+              <div className="input-row">
+                <input
+                  className="field-input"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  maxLength={255}
+                  placeholder="you@example.com"
+                  disabled={isSendingCode}
+                />
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => void handleSendCode()}
+                  disabled={isSendingCode || !email.trim()}
+                >
+                  {isSendingCode
+                    ? <><span className="spinner" />Sending…</>
+                    : <>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                          <path d="M11.5 1.5L6 7M11.5 1.5H8M11.5 1.5V5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M5 3H2C1.45 3 1 3.45 1 4V11C1 11.55 1.45 12 2 12H9C9.55 12 10 11.55 10 11V8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                        </svg>
+                        Send code
+                      </>
+                  }
+                </button>
+              </div>
+              {!hasSentCode && <p className="hint-text">We'll send a one-time code to this address.</p>}
             </div>
-            <label className="mt-5 block">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">OTP code</span>
+
+            <div className="field">
+              <label className="field-label">Verification code</label>
               <input
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                className="field-input otp-input"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 inputMode="numeric"
                 maxLength={6}
-                placeholder="123456"
+                placeholder="• • • • • •"
+                disabled={!hasSentCode}
               />
-            </label>
+            </div>
 
             {statusMessage && (
-              <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              <div className="alert alert-success">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <path d="M12.5 4L6 10.5L3 7.5" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 {statusMessage}
-              </p>
+              </div>
             )}
             {errorMessage && (
-              <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="alert alert-error">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <circle cx="7.5" cy="7.5" r="5.5" stroke="#dc2626" strokeWidth="1.4"/>
+                  <path d="M7.5 4.5V8M7.5 10.5H7.51" stroke="#dc2626" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
                 {errorMessage}
-              </p>
+              </div>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-55"
-                disabled={isSubmitting || !hasSentCode}
-              >
-                {isSubmitting ? 'Verifying…' : 'Verify email'}
-              </button>
+            <button
+              type="submit"
+              className="btn-primary btn-full"
+              style={{ marginTop: 22 }}
+              disabled={isSubmitting || !hasSentCode || otp.length < 6}
+            >
+              {isSubmitting
+                ? <><span className="spinner" />Verifying…</>
+                : <>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
+                      <path d="M4.5 7L6.5 9L9.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Verify email
+                  </>
+              }
+            </button>
+
+            <div className="actions-row">
               <button
                 type="button"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                className="btn-outline"
                 onClick={() => void handleResend()}
                 disabled={isResending || !hasSentCode}
               >
-                {isResending ? 'Resending…' : 'Resend code'}
+                {isResending
+                  ? <><span className="spinner spinner-blue" />Resending…</>
+                  : <>
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <path d="M2 6.5A4.5 4.5 0 0 1 10 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                        <path d="M8.5 1.5L10.5 3.5L8.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Resend code
+                    </>
+                }
               </button>
-              <Link to="/sign-in" className="text-sm font-semibold text-blue-600 hover:text-blue-500">
-                Back to sign in
-              </Link>
+              <Link to="/sign-in" className="link-text">Sign in instead →</Link>
             </div>
+
           </form>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

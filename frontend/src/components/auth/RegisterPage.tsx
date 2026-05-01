@@ -15,17 +15,17 @@ export default function RegisterPage({ isSignedIn, refreshSession: _refreshSessi
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const navigate = useNavigate()
+
   const passwordValue = password.trim()
   const strength = check_password_strength(passwordValue)
   const strengthPercent = Math.round((strength.score / 5) * 100)
-  const strengthLabelClass = getStrengthLabelClass(strength.label)
-  const strengthBarClass = getStrengthBarClass(strength.label)
+
   const passwordRules = [
-    { label: 'Length >= 8 characters', passed: strength.rules.hasMinLength },
+    { label: 'Length ≥ 8 characters',        passed: strength.rules.hasMinLength },
     { label: 'At least one uppercase letter', passed: strength.rules.hasUppercase },
     { label: 'At least one lowercase letter', passed: strength.rules.hasLowercase },
-    { label: 'At least one number', passed: strength.rules.hasDigit },
-    { label: 'At least one symbol', passed: strength.rules.hasSpecial },
+    { label: 'At least one number',           passed: strength.rules.hasDigit },
+    { label: 'At least one symbol',           passed: strength.rules.hasSpecial },
   ]
 
   if (isSignedIn) return <Navigate to="/dashboard" replace />
@@ -35,14 +35,14 @@ export default function RegisterPage({ isSignedIn, refreshSession: _refreshSessi
     const u = username.trim().toLowerCase()
     const p = password.trim()
     const submitStrength = check_password_strength(p)
-    if (!u || !p) { setErrorMessage('Username and password are required.'); return }
+    if (!u || !p)                        { setErrorMessage('Username and password are required.'); return }
     if (submitStrength.label === 'Weak') { setErrorMessage('Password strength is too weak.'); return }
-    if (p.length < 8) { setErrorMessage('Password must be at least 8 characters.'); return }
-    if (!/[A-Z]/.test(p)) { setErrorMessage('Password must include at least one uppercase letter.'); return }
-    if (!/[a-z]/.test(p)) { setErrorMessage('Password must include at least one lowercase letter.'); return }
-    if (!/[0-9]/.test(p)) { setErrorMessage('Password must include at least one number.'); return }
-    if (!/[^A-Za-z0-9]/.test(p)) { setErrorMessage('Password must include at least one symbol.'); return }
-    if (p !== confirmPassword.trim()) { setErrorMessage('Passwords do not match.'); return }
+    if (p.length < 8)                    { setErrorMessage('Password must be at least 8 characters.'); return }
+    if (!/[A-Z]/.test(p))               { setErrorMessage('Password must include at least one uppercase letter.'); return }
+    if (!/[a-z]/.test(p))               { setErrorMessage('Password must include at least one lowercase letter.'); return }
+    if (!/[0-9]/.test(p))               { setErrorMessage('Password must include at least one number.'); return }
+    if (!/[^A-Za-z0-9]/.test(p))        { setErrorMessage('Password must include at least one symbol.'); return }
+    if (p !== confirmPassword.trim())    { setErrorMessage('Passwords do not match.'); return }
     setIsSubmitting(true); setErrorMessage(null)
     try {
       await apiRequest('/api/auth/register', {
@@ -56,144 +56,154 @@ export default function RegisterPage({ isSignedIn, refreshSession: _refreshSessi
   }
 
   return (
-    <div
-      className="relative min-h-screen overflow-hidden bg-[#f8f9fb] font-['Inter',system-ui,sans-serif]"
-      style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.07) 1px, transparent 0)',
-        backgroundSize: '14px 14px',
-      }}
-    >
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-8 sm:px-6">
-        <div className="landing-fade-up grid w-full overflow-hidden rounded-[30px] border border-white/70 bg-white/55 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl md:grid-cols-[1.05fr_minmax(340px,440px)]">
-          <section className="relative border-b border-slate-200/70 bg-gradient-to-br from-white/80 via-slate-50/75 to-blue-50/70 p-7 md:border-b-0 md:border-r md:p-10">
-            <Link to="/" className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-50">
-              Back to home
-            </Link>
-            <p className="mt-5 text-sm font-semibold tracking-wide text-blue-600">BlogStreet</p>
-            <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-tight text-slate-950 md:text-[2.8rem]">
-              Create your account.
-            </h1>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600">
-              Start writing with a secure account and keep your notes organized from day one.
-            </p>
-            <div className="landing-fade-up mt-8 rounded-2xl border border-white/70 bg-white/70 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)]" style={{ animationDelay: '140ms' }}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Already registered?</p>
-              <Link to="/sign-in" className="mt-2 inline-flex text-sm font-semibold text-blue-600 transition hover:text-blue-500">
-                Sign in instead
-              </Link>
-            </div>
-          </section>
-          <form className="landing-fade-up bg-white/70 p-7 md:p-10" style={{ animationDelay: '100ms' }} onSubmit={(e) => void handleSubmit(e)}>
-            <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Create account</h2>
-            <p className="mt-2 text-sm text-slate-600">Choose credentials for your new account.</p>
-            <label className="mt-7 block">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Username</span>
-              <input
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                maxLength={64}
-                placeholder="Choose a username"
-              />
-            </label>
-            <label className="mt-5 block">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Password</span>
-              <div className="relative mt-2">
-                <input
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-16 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                  type={isPasswordVisible ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  maxLength={256}
-                  placeholder="Create a strong password"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer"
-                  onClick={() => setIsPasswordVisible((prev) => !prev)}
-                  aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
-                >
-                  {isPasswordVisible ? (
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5 transition-transform duration-200"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+    <>
+
+      <div className="rp-root">
+        <div className="rp-card">
+          <Link to="/" className="back-link">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M8.5 10.5L4.5 6.5L8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Back to home
+          </Link>
+
+          <div className="progress-bar">
+            <div className="progress-seg active" />
+            <div className="progress-seg" />
+          </div>
+
+          <div className="step-chip">
+            <div className="step-num">1</div>
+            <span className="step-label">Account Details</span>
+          </div>
+
+          <h1 className="rp-title">Create your account</h1>
+          <p className="rp-subtitle">Choose a username and a strong password to get started.</p>
+
+          <div className="divider" />
+          <form onSubmit={(e) => void handleSubmit(e)}>
+            <div className="form-grid">
+              <div className="form-col">
+                <div className="field">
+                  <label className="field-label" htmlFor="rp-username">Username</label>
+                  <input
+                    id="rp-username"
+                    className="field-input"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    maxLength={64}
+                    placeholder="Choose a username"
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label" htmlFor="rp-confirm">Confirm password</label>
+                  <input
+                    id="rp-confirm"
+                    className="field-input"
+                    type={isPasswordVisible ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    maxLength={256}
+                    placeholder="Re-enter your password"
+                  />
+                </div>
+              </div>
+
+              <div className="form-col">
+                <div className="field">
+                  <label className="field-label" htmlFor="rp-password">Password</label>
+                  <div className="password-wrap">
+                    <input
+                      id="rp-password"
+                      className="field-input"
+                      type={isPasswordVisible ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      maxLength={256}
+                      placeholder="Create a strong password"
+                    />
+                    <button
+                      type="button"
+                      className="eye-btn"
+                      onClick={() => setIsPasswordVisible((prev) => !prev)}
+                      aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
                     >
-                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  ) : (
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5 transition-transform duration-200"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 5l18 14" />
-                      <path d="M2 12s3.5-6 10-6c2.4 0 4.4.8 5.9 1.9" />
-                      <path d="M8.2 9.2a3 3 0 0 0 4.6 3.6" />
-                      <path d="M6.2 14.2C4.5 13.1 3 12 2 12" />
-                      <path d="M13.7 14.6c-.5.2-1.1.4-1.7.4-6.5 0-10-6-10-6" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </label>
-            <label className="mt-5 block">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Confirm password</span>
-              <input
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                type={isPasswordVisible ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                maxLength={256}
-                placeholder="Re-enter your password"
-              />
-            </label>
-            <p className="mt-2 text-xs text-slate-500">At least 8 chars with uppercase, lowercase, number, and symbol.</p>
-            <div className="mt-3 rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2">
-              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                <span>Strength</span>
-                <span className={strengthLabelClass}>{strength.label}</span>
-              </div>
-              <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
-                <div className={`h-full rounded-full transition-all ${strengthBarClass}`} style={{ width: `${strengthPercent}%` }} />
-              </div>
-              <div className="mt-2 grid gap-1 text-xs">
-                {passwordRules.map((rule) => (
-                  <div key={rule.label} className={rule.passed ? 'text-emerald-700' : 'text-slate-500'}>
-                    {rule.label}
+                      {isPasswordVisible ? (
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      ) : (
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 5l18 14"/>
+                          <path d="M2 12s3.5-6 10-6c2.4 0 4.4.8 5.9 1.9"/>
+                          <path d="M8.2 9.2a3 3 0 0 0 4.6 3.6"/>
+                          <path d="M13.7 14.6c-.5.2-1.1.4-1.7.4-6.5 0-10-6-10-6"/>
+                        </svg>
+                      )}
+                    </button>
                   </div>
-                ))}
+
+                  <div className="strength-box">
+                    <div className="strength-header">
+                      <span>Strength</span>
+                      <span className={`strength-label ${strength.label.toLowerCase()}`}>{strength.label}</span>
+                    </div>
+                    <div className="strength-track">
+                      <div
+                        className={`strength-fill ${strength.label.toLowerCase()}`}
+                        style={{ width: `${strengthPercent}%` }}
+                      />
+                    </div>
+                    <div className="rule-list">
+                      {passwordRules.map((rule) => (
+                        <div key={rule.label} className={`rule-item${rule.passed ? ' pass' : ''}`}>
+                          <div className="rule-dot" />
+                          {rule.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            {errorMessage && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>}
-            <button
-              type="submit"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-55"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating account…' : 'Sign up'}
+
+            {errorMessage && (
+              <div className="alert alert-error">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <circle cx="7.5" cy="7.5" r="5.5" stroke="#dc2626" strokeWidth="1.4"/>
+                  <path d="M7.5 4.5V8M7.5 10.5H7.51" stroke="#dc2626" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                {errorMessage}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <><span className="spinner" />Creating account…</>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Continue
+                </>
+              )}
             </button>
-            <p className="mt-5 text-center text-sm text-slate-600">
-              Already have an account? <Link to="/sign-in" className="font-semibold text-blue-600 hover:text-blue-500">Sign in</Link>
-            </p>
+
           </form>
+
+          <p className="footer-text">
+            Already have an account? <Link to="/sign-in">Sign in</Link>
+          </p>
+
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -222,30 +232,12 @@ function check_password_strength(password: string): PasswordStrengthResult {
     hasMinLength: password.length >= 8,
     hasUppercase: /[A-Z]/.test(password),
     hasLowercase: /[a-z]/.test(password),
-    hasDigit: /[0-9]/.test(password),
-    hasSpecial: /[^A-Za-z0-9]/.test(password),
+    hasDigit:     /[0-9]/.test(password),
+    hasSpecial:   /[^A-Za-z0-9]/.test(password),
   }
-
   const score = Object.values(rules).filter(Boolean).length
   let label: PasswordStrengthLabel = 'Weak'
-
-  if (score >= 5) {
-    label = 'Strong'
-  } else if (score >= 3) {
-    label = 'Medium'
-  }
-
+  if (score >= 5) label = 'Strong'
+  else if (score >= 3) label = 'Medium'
   return { score, label, rules }
-}
-
-function getStrengthLabelClass(label: PasswordStrengthLabel): string {
-  if (label === 'Strong') return 'text-emerald-600'
-  if (label === 'Medium') return 'text-amber-600'
-  return 'text-red-600'
-}
-
-function getStrengthBarClass(label: PasswordStrengthLabel): string {
-  if (label === 'Strong') return 'bg-emerald-500'
-  if (label === 'Medium') return 'bg-amber-500'
-  return 'bg-red-500'
 }
