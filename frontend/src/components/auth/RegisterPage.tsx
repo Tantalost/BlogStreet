@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { ApiError } from '../../lib/api'
+import { ApiError, apiRequest } from '../../lib/api'
 
 type RegisterPageProps = {
   isSignedIn: boolean
@@ -45,7 +45,11 @@ export default function RegisterPage({ isSignedIn, refreshSession: _refreshSessi
     if (p !== confirmPassword.trim()) { setErrorMessage('Passwords do not match.'); return }
     setIsSubmitting(true); setErrorMessage(null)
     try {
-      navigate('/verify-otp', { state: { username: u, password: p } })
+      await apiRequest('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ username: u, email: u, password: p }),
+      }, { skipSessionCheck: true })
+      navigate('/verify-otp', { state: { email: u } })
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally { setIsSubmitting(false) }
