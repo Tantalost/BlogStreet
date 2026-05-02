@@ -4,7 +4,7 @@ let cachedHandler: Handler | null = null
 
 async function getHandler(): Promise<Handler> {
   if (cachedHandler) return cachedHandler
-  const mod = await import('../backend/src/app.js')
+  const mod = await import('../src/app.js')
   cachedHandler = (mod.default as Handler)
   return cachedHandler
 }
