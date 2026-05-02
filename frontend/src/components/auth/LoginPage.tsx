@@ -128,6 +128,10 @@ export default function LoginPage({ isSignedIn, refreshSession }: LoginPageProps
             </button>
           </form>
 
+          <p className="footer-text" style={{ marginTop: 16 }}>
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
+
           <p className="footer-text" style={{ marginTop: 20 }}>
             No account yet? <Link to="/sign-up">Create one</Link>
           </p>

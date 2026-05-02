@@ -7,6 +7,7 @@ import DeletedNotesPageComponent from './components/DeletedNotesPage'
 import LoginPage from './components/auth/LoginPage'
 import RegisterPage from './components/auth/RegisterPage'
 import VerifyOtpPage from './components/auth/VerifyOtpPage'
+import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import SecurityPageComponent from './components/account/SecurityPage'
 import { RequireAuth, SessionAuthProvider, useSessionAuth } from './auth/session'
 import './App.css'
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Route path="/sign-in" element={<LoginPage isSignedIn={Boolean(user)} refreshSession={refreshSession} />} />
       <Route path="/sign-up" element={<RegisterPage isSignedIn={Boolean(user)} refreshSession={refreshSession} />} />
       <Route path="/verify-otp" element={<VerifyOtpPage isSignedIn={Boolean(user)} />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage isSignedIn={Boolean(user)} />} />
       <Route path="/profile" element={<RequireAuth><SecurityPage /></RequireAuth>} />
       <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
       <Route path="/create-note" element={<RequireAuth><WorkspacePage /></RequireAuth>} />

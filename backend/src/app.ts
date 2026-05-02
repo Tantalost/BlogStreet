@@ -56,9 +56,18 @@ type PendingRegistration = {
   attempts: number
 }
 
+type PendingPasswordReset = {
+  userId: string
+  email: string
+  otp: string
+  expiresAt: number
+  attempts: number
+}
+
 const failedAttemptsByUsername = new Map<string, FailedLoginRecord>()
 const activityLogEntries: string[] = []
 const pendingRegistrationsByEmail = new Map<string, PendingRegistration>()
+const pendingPasswordResetsByEmail = new Map<string, PendingPasswordReset>()
 
 const createNoteSchema = z.object({
   title: z.string().trim().min(1, 'Title is required.').max(140),
@@ -101,6 +110,23 @@ const registerVerifySchema = z.object({
 
 const resendOtpSchema = z.object({
   email: z.string().trim().email('Email is invalid.').max(255),
+})
+
+const forgotPasswordRequestSchema = z.object({
+  email: z.string().trim().email('Email is invalid.').max(255),
+})
+
+const forgotPasswordVerifySchema = z.object({
+  email: z.string().trim().email('Email is invalid.').max(255),
+  otp: z.string().trim().regex(/^\d{6}$/, 'OTP code must be 6 digits.'),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters.')
+    .max(1024)
+    .regex(/[A-Z]/, 'Password must include at least one uppercase letter.')
+    .regex(/[a-z]/, 'Password must include at least one lowercase letter.')
+    .regex(/[0-9]/, 'Password must include at least one number.')
+    .regex(/[^A-Za-z0-9]/, 'Password must include at least one symbol.'),
 })
 
 const profileUpdateSchema = z.object({
@@ -674,6 +700,138 @@ app.post('/api/auth/register/resend', async (req, res) => {
   if (isPendingExpired(pending, Date.now())) {
     pendingRegistrationsByEmail.delete(email)
     res.status(410).json({ error: 'Registration expired. Please sign up again.' })
+    return
+  }
+
+  const otp = generateOtpCode()
+  try {
+    await sendOtpEmail(email, otp)
+  } catch {
+    res.status(500).json({ error: 'Failed to send verification code.' })
+    return
+  }
+
+  pending.otp = otp
+  pending.expiresAt = Date.now() + OTP_EXPIRY_MS
+  pending.attempts = 0
+
+  res.json({ message: 'A new verification code has been sent.' })
+})
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const parsed = forgotPasswordRequestSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
+    return
+  }
+
+  const email = normalizeEmail(parsed.data.email)
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('id, username')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (error) {
+    res.status(500).json({ error: 'Failed to check email.' })
+    return
+  }
+
+  if (!data) {
+    res.status(404).json({ error: 'No account found with this email address.' })
+    return
+  }
+
+  const otp = generateOtpCode()
+  try {
+    await sendOtpEmail(email, otp)
+  } catch {
+    res.status(500).json({ error: 'Failed to send verification code.' })
+    return
+  }
+
+  const pending: PendingPasswordReset = {
+    userId: data.id,
+    email,
+    otp,
+    expiresAt: Date.now() + OTP_EXPIRY_MS,
+    attempts: 0,
+  }
+
+  pendingPasswordResetsByEmail.set(email, pending)
+  res.json({ message: `We sent a code to ${email}.` })
+})
+
+app.post('/api/auth/forgot-password/verify', async (req, res) => {
+  const parsed = forgotPasswordVerifySchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
+    return
+  }
+
+  const email = normalizeEmail(parsed.data.email)
+  const otp = parsed.data.otp.trim()
+  const pending = pendingPasswordResetsByEmail.get(email)
+
+  if (!pending) {
+    res.status(400).json({ error: 'No pending password reset found. Please request a new code.' })
+    return
+  }
+
+  const now = Date.now()
+  if (now > pending.expiresAt) {
+    pendingPasswordResetsByEmail.delete(email)
+    res.status(410).json({ error: 'Verification code expired. Please request a new one.' })
+    return
+  }
+
+  if (pending.otp !== otp) {
+    pending.attempts += 1
+    if (pending.attempts >= OTP_MAX_ATTEMPTS) {
+      pendingPasswordResetsByEmail.delete(email)
+      res.status(400).json({ error: 'Verification code invalid. Please request a new one.' })
+      return
+    }
+    res.status(401).json({
+      error: `Invalid code. ${OTP_MAX_ATTEMPTS - pending.attempts} attempt(s) remaining.`,
+    })
+    return
+  }
+
+  const passwordHash = await hashPassword(parsed.data.newPassword)
+  const { error: updateError } = await supabaseAdmin
+    .from('users')
+    .update({ password_hash: passwordHash })
+    .eq('id', pending.userId)
+
+  if (updateError) {
+    res.status(500).json({ error: 'Failed to update password.' })
+    return
+  }
+
+  pendingPasswordResetsByEmail.delete(email)
+  res.json({ message: 'Password has been reset successfully.' })
+})
+
+app.post('/api/auth/forgot-password/resend', async (req, res) => {
+  const parsed = resendOtpSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload.' })
+    return
+  }
+
+  const email = normalizeEmail(parsed.data.email)
+  const pending = pendingPasswordResetsByEmail.get(email)
+
+  if (!pending) {
+    res.status(400).json({ error: 'No pending password reset found. Please request a new code.' })
+    return
+  }
+
+  if (Date.now() > pending.expiresAt) {
+    pendingPasswordResetsByEmail.delete(email)
+    res.status(410).json({ error: 'Password reset expired. Please request a new one.' })
     return
   }
 
