@@ -501,7 +501,6 @@ app.post('/api/auth/logout', (req, res) => {
       const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload
       if (typeof decoded.username === 'string') username = decoded.username
     } catch {
-      // Ignore invalid tokens when logging out.
     }
   }
   log_event(username, 'LOGOUT', 'User logged out.')
@@ -538,10 +537,7 @@ app.get('/api/auth/activity', requireUser, async (req: AuthenticatedRequest, res
   if (activityLogEntries.length === 0) {
     await loadActivityLogFromDb()
   }
-
-  // Only return activity entries related to the requesting user
   const username = req.user?.username ?? ''
-  // Entries are formatted like: "[ts] user=username | event=... | detail=..."
   const userEntries = activityLogEntries.filter((entry) => entry.includes(`user=${username} |`))
   const tail = userEntries.slice(-20)
   res.json({ entries: tail })
@@ -572,15 +568,12 @@ app.post('/api/auth/register', async (req, res) => {
     return
   }
 
-  // If no email provided, just return availability check (from RegisterPage)
   if (!parsed.data.email) {
     res.status(200).json({ message: 'Username is available.' })
     return
   }
 
-  // If email provided, create pending registration and send OTP (from VerifyOtpPage)
   const email = normalizeEmail(parsed.data.email)
-  // Check if email is already registered
   const { data: emailData, error: emailError } = await supabaseAdmin
     .from('users')
     .select('id')
