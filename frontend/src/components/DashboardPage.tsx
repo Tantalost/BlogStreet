@@ -190,7 +190,7 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <button
                 type="button"
-                className="grid h-8 w-8 place-items-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                className="grid h-8 w-8 place-items-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 cursor-pointer"
                 onClick={() => setIsSidebarCollapsed((prev) => !prev)}
                 aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -226,7 +226,7 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
               <div ref={profileMenuRef} className="relative">
                 <button
                   type="button"
-                  className="flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white pl-2 pr-2 text-sm font-semibold text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
+                  className="flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white pl-2 pr-2 text-sm font-semibold text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)] cursor-pointer"
                   onClick={() => setIsProfileMenuOpen((open) => !open)}
                   aria-haspopup="menu"
                   aria-expanded={isProfileMenuOpen}
@@ -249,13 +249,13 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
                   </svg>
                 </button>
                 {isProfileMenuOpen && (
-                  <div className="profile-menu-pop absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-[0_14px_30px_rgba(15,23,42,0.14)]">
+                  <div className="profile-menu-pop absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-[0_14px_30px_rgba(15,23,42,0.14)] cursor-pointer">
                     <Link to="/profile" className="block px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => setIsProfileMenuOpen(false)}>
                       Profile
                     </Link>
                     <button
                       type="button"
-                      className="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                       onClick={() => void handleViewActivityLog()}
                       disabled={isViewingLog}
                     >
@@ -263,7 +263,7 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
                     </button>
                     <button
                       type="button"
-                      className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                       onClick={handleLogoutClick}
                       disabled={isLoggingOut}
                     >
@@ -358,6 +358,23 @@ export default function DashboardPageComponent({ user, logout }: DashboardPagePr
               </div>
             </div>
           </section>
+
+          <footer className="panel-enter enter-delay-5 mt-6 rounded-3xl border border-sky-100 bg-sky-50/70 px-5 py-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">WebGoat Lessons</p>
+            <p className="mt-2 text-sm text-slate-600">Click the link to view our detailed learning on WebGoat's Lessons</p>
+            <a
+              href="https://docs.google.com/document/d/1hSTomgmu61oeOitMDgNE8FsYb4YdjEWryKi9T921Cbg/edit?tab=t.0"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+            >
+              Open the document
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden="true">
+                <path d="M6 3.5h6.5V10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12.5 3.5 6 10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          </footer>
         </main>
       </div>
 

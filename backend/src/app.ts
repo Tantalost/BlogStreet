@@ -177,18 +177,31 @@ function generateOtpCode(): string {
 }
 
 async function sendOtpEmail(email: string, otpCode: string): Promise<void> {
-  const subject = 'Your BlogStreet verification code'
-  const text = `Your verification code is ${otpCode}. It expires in 10 minutes.`
   const html = `
-    <p>Your verification code is <strong>${otpCode}</strong>.</p>
-    <p>This code expires in 10 minutes.</p>
-  `
+  <div style="font-family: -apple-system, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden;">
+    <div style="padding: 32px;">
+      <p style="font-size: 11px; font-weight: 600; color: #888; letter-spacing: 0.08em; margin: 0 0 6px; text-transform: uppercase;">BlogStreet</p>
+      <h1 style="font-size: 20px; font-weight: 500; color: #111; margin: 0 0 16px;">Verify your identity</h1>
+      <p style="font-size: 14px; color: #666; line-height: 1.6; margin: 0 0 24px;">Use the code below to complete your sign-in. It's valid for the next 10 minutes.</p>
+
+      <div style="background: #f7f7f5; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; text-align: center; margin: 0 0 24px;">
+        <span style="font-size: 28px; font-weight: 500; letter-spacing: 0.18em; color: #111; font-family: 'Courier New', monospace;">${otpCode.replace(/(\d{3})(\d{3})/, '$1 $2')}</span>
+        <p style="font-size: 12px; color: #999; margin: 8px 0 0;">Expires in 10 minutes</p>
+      </div>
+
+      <p style="font-size: 13px; color: #999; line-height: 1.6; margin: 0;">If you didn't request this, you can safely ignore this email. Your account remains secure.</p>
+    </div>
+
+    <div style="padding: 14px 32px; border-top: 1px solid #e5e5e5;">
+      <p style="font-size: 12px; color: #aaa; margin: 0;">© ${new Date().getFullYear()} BlogStreet</p>
+    </div>
+  </div>
+`
 
   await otpTransport.sendMail({
     from: otpFromAddress,
     to: email,
-    subject,
-    text,
+    subject: 'Your BlogStreet verification code',
     html,
   })
 }
@@ -495,11 +508,17 @@ app.get('/api/auth/me', requireUser, async (req: AuthenticatedRequest, res) => {
   res.json({ user: { id: data.id, username: data.username, avatarUrl: data.avatar_url } })
 })
 
-app.get('/api/auth/activity', requireUser, async (_req, res) => {
+app.get('/api/auth/activity', requireUser, async (req: AuthenticatedRequest, res) => {
   if (activityLogEntries.length === 0) {
     await loadActivityLogFromDb()
   }
-  res.json({ entries: getActivityLogTail(20) })
+
+  // Only return activity entries related to the requesting user
+  const username = req.user?.username ?? ''
+  // Entries are formatted like: "[ts] user=username | event=... | detail=..."
+  const userEntries = activityLogEntries.filter((entry) => entry.includes(`user=${username} |`))
+  const tail = userEntries.slice(-20)
+  res.json({ entries: tail })
 })
 
 app.post('/api/auth/register', async (req, res) => {
@@ -552,8 +571,11 @@ app.post('/api/auth/register', async (req, res) => {
     return
   }
 
-  const otp = generateOtpCode()
-  
+  const [otp, passwordHash] = await Promise.all([
+    Promise.resolve(generateOtpCode()),
+    bcrypt.hash(parsed.data.password, SALT_ROUNDS),
+  ])
+
   try {
     await sendOtpEmail(email, otp)
   } catch {
@@ -561,7 +583,6 @@ app.post('/api/auth/register', async (req, res) => {
     return
   }
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, SALT_ROUNDS)
   const pending: PendingRegistration = {
     username,
     email,
@@ -647,6 +668,12 @@ app.post('/api/auth/register/resend', async (req, res) => {
 
   if (!pending) {
     res.status(400).json({ error: 'No pending registration found. Please sign up again.' })
+    return
+  }
+
+  if (isPendingExpired(pending, Date.now())) {
+    pendingRegistrationsByEmail.delete(email)
+    res.status(410).json({ error: 'Registration expired. Please sign up again.' })
     return
   }
 

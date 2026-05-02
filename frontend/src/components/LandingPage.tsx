@@ -88,8 +88,6 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-
-          {/* Reminders Card with Just Clock Icon */}
           <div className="landing-float-medium pointer-events-none absolute right-4 top-8 hidden rotate-3 xl:block xl:right-10 motion-reduce:animate-none">
             <div className="relative w-44 rounded-3xl border border-white/75 bg-white/50 px-4 py-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-2xl lg:w-48 lg:px-5 lg:py-4">
               <p className="text-lg font-semibold text-slate-800">Reminders</p>
